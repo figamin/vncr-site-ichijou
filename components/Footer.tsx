@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { isPublicHttpUrl } from '@/lib/config';
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -12,6 +13,12 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 }
 
 export default function Footer() {
+  // Browsers no longer call the backend directly, so only advertise its docs
+  // when the configured URL is genuinely public.
+  const publicApiDocsUrl = isPublicHttpUrl(process.env.NEXT_PUBLIC_VNDB_STATS_API)
+    ? `${process.env.NEXT_PUBLIC_VNDB_STATS_API}/docs`
+    : null;
+
   return (
     <footer className="box-band on-box py-12">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -140,10 +147,10 @@ export default function Footer() {
                   Contribute on GitHub
                 </a>
               </li>
-              {process.env.NEXT_PUBLIC_VNDB_STATS_API && (
+              {publicApiDocsUrl && (
                 <li>
                   <a
-                    href={`${process.env.NEXT_PUBLIC_VNDB_STATS_API}/docs`}
+                    href={publicApiDocsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition-colors hover:text-[color:var(--kohaku)]"

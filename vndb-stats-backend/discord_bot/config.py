@@ -18,8 +18,11 @@ class BotSettings:
             int(x.strip()) for x in user_ids.split(",") if x.strip()
         ]
 
-        # Frontend cache refresh settings
-        self.frontend_url: str = os.environ.get("FRONTEND_URL", "https://vnclub.org")
+        # Frontend links. Treat an empty env value (the .env.example
+        # placeholder) as unset: Discord requires absolute http(s) URLs for
+        # link buttons, so frontend_url must never be "".
+        frontend_url = os.environ.get("FRONTEND_URL", "").strip().rstrip("/")
+        self.frontend_url: str = frontend_url or "https://vnclub.org"
         self.blacklist_refresh_secret: str = os.environ.get("BLACKLIST_REFRESH_SECRET", "")
 
 

@@ -581,7 +581,14 @@ class DailyPostsCog(commands.Cog):
                 logger.error(f"pg_dump failed: {err}")
                 return f"pg_dump failed: {err[:200]}"
 
-            compressed = gzip.compress(result.stdout)
+            # pg_dump comes from the bot image, which can be newer than the
+            # Postgres server (e.g. client 17 vs server 15). Client 17 emits
+            # `SET transaction_timeout`, which PG15 rejects and which aborts a
+            # restore. Drop settings the server does not know before storing.
+            dump = re.sub(
+                rb"^SET transaction_timeout = .*;\n", b"", result.stdout, flags=re.M
+            )
+            compressed = gzip.compress(dump)
 
             # Get row count
             async with async_session_maker() as db:

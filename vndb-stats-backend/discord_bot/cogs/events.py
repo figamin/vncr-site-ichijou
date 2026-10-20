@@ -88,13 +88,19 @@ class EventsCog(commands.Cog):
         embed.set_footer(text="VN Club")
 
         view = discord.ui.View()
-        view.add_item(
-            discord.ui.Button(
-                label="Open full calendar",
-                url=f"{site}/events/",
-                style=discord.ButtonStyle.link,
+        if site.startswith(("http://", "https://")):
+            view.add_item(
+                discord.ui.Button(
+                    label="Open full calendar",
+                    url=f"{site}/events/",
+                    style=discord.ButtonStyle.link,
+                )
             )
-        )
+        else:
+            logger.warning(
+                "FRONTEND_URL is not an absolute http(s) URL (%r); omitting the calendar link button",
+                site,
+            )
         await interaction.followup.send(embed=embed, view=view)
 
     @app_commands.command(

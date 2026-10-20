@@ -20,13 +20,49 @@ const getOutputConfig = () => {
 // Build connect-src with backend API URL if configured
 const backendUrl = process.env.NEXT_PUBLIC_VNDB_STATS_API;
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// The browser calls the same-origin /api/backend proxy (see
+// app/api/backend/[...path]/route.ts). Local/private API URLs are therefore
+// server-only and must not be advertised in the browser's connect-src.
+function isLocalOrPrivateHost(value) {
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (host === 'localhost' || host === '::1' || host.endsWith('.local')) return true;
+    if (/^f[cd][0-9a-f]{2}:/i.test(host) || /^fe[89ab][0-9a-f]:/i.test(host)) return true;
+    const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (!v4) return false;
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 192 && b === 168) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 169 && b === 254)
+    );
+  } catch {
+    return false;
+  }
+}
+
+const publicBackendUrl = backendUrl && !isLocalOrPrivateHost(backendUrl) ? backendUrl : null;
+const publicApiUrl =
+  apiUrl && apiUrl !== backendUrl && !isLocalOrPrivateHost(apiUrl) ? apiUrl : null;
+
+// Browser base URL. Server builds use Next's same-origin proxy; static export
+// (GitHub Pages) has no server, so it keeps using any configured public API.
+const clientBackendBase =
+  process.env.STATIC_EXPORT === 'true'
+    ? process.env.NEXT_PUBLIC_VNDB_STATS_API || ''
+    : '/api/backend';
+
 const connectSrc = [
   "'self'",
   'https://vnclub.org',
   'https://api.vnclub.org',
   ...(process.env.NEXT_PUBLIC_UMAMI_URL ? [process.env.NEXT_PUBLIC_UMAMI_URL] : []),
-  ...(backendUrl ? [backendUrl] : []),
-  ...(apiUrl && apiUrl !== backendUrl ? [apiUrl] : []),
+  ...(publicBackendUrl ? [publicBackendUrl] : []),
+  ...(publicApiUrl ? [publicApiUrl] : []),
 ].join(' ');
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -40,6 +76,9 @@ const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || '')
 
 const nextConfig = {
   ...getOutputConfig(),
+  env: {
+    NEXT_PUBLIC_BACKEND_BASE: clientBackendBase,
+  },
   ...(allowedDevOrigins.length ? { allowedDevOrigins } : {}),
   trailingSlash: true,
   poweredByHeader: false,

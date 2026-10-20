@@ -5072,6 +5072,12 @@ async def _run_full_import_inner(
 
     extract_dir = os.path.join(dump_dir, "extracted")
 
+    # Producers and staff are read from files inside the db archive, which
+    # import_visual_novels extracts later. Extract it up front so a fresh import
+    # doesn't skip those two tables (and release_producers, which needs them).
+    if "db" in paths:
+        decompress_zstd_tar(paths["db"], extract_dir)
+
     # Import in order (respecting foreign key dependencies).
     # Parent tables use safe upserts; junction tables use staging + atomic swap.
 

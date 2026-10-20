@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * Development startup script
- * Automatically starts Docker containers and imports data if needed
+ * Development/production startup script
+ * Automatically starts Docker containers and imports data if needed.
+ *
+ * Pass --prod to run `next start` after the backend is ready.
  */
 
 const { spawn, execSync } = require('child_process');
@@ -26,6 +28,7 @@ if (fs.existsSync(backendEnvPath)) {
   });
 }
 const API_URL = 'http://localhost:8000';
+const IS_PROD = process.argv.includes('--prod');
 
 function log(msg) {
   console.log(`\x1b[36m[startup]\x1b[0m ${msg}`);
@@ -39,22 +42,36 @@ function logSuccess(msg) {
   console.log(`\x1b[32m[startup]\x1b[0m ${msg}`);
 }
 
-function isDockerRunning() {
+function getDockerStatus() {
   try {
-    execSync('docker info', { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
+    execSync('docker info', { stdio: 'pipe' });
+    return 'ok';
+  } catch (e) {
+    const stderr = e && e.stderr ? e.stderr.toString() : '';
+    return /permission denied/i.test(stderr) ? 'denied' : 'unavailable';
   }
 }
 
 function areContainersRunning() {
   try {
-    const result = execSync('docker compose ps --status running -q', {
+    // Check the API service specifically. Checking all services would report
+    // "running" while db/redis are up and the API container is still Created.
+    const result = execSync('docker compose ps --status running -q api', {
       cwd: BACKEND_DIR,
       encoding: 'utf-8',
     });
     return result.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function isApiReady(timeoutMs = 2000) {
+  try {
+    const response = await fetch(`${API_URL}/health`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return response.ok;
   } catch {
     return false;
   }
@@ -200,19 +217,21 @@ function startDiscordBot() {
   return bot;
 }
 
-function startDevServers() {
-  log('Starting development servers...');
+function startNextServer() {
+  log(IS_PROD ? 'Starting production server...' : 'Starting development servers...');
 
-  ensureSearchIndex();
+  // A production build already generated the search index via `prebuild`.
+  if (!IS_PROD) ensureSearchIndex();
 
-  // Start Discord bot if configured
-  const bot = startDiscordBot();
+  // The bot is a development convenience; production deployments run it separately.
+  const bot = IS_PROD ? null : startDiscordBot();
 
   // Run Next directly via node, not through a shell. The cmd.exe a shell wraps it
   // in mangles Ctrl+C on Windows (closing the whole terminal); the bin as a plain
   // child can be torn down cleanly.
   const nextBin = require.resolve('next/dist/bin/next');
-  const next = spawn(process.execPath, [nextBin, 'dev', '--turbo', '-p', '3000'], {
+  const nextArgs = IS_PROD ? ['start', '-p', '3000'] : ['dev', '--turbo', '-p', '3000'];
+  const next = spawn(process.execPath, [nextBin, ...nextArgs], {
     stdio: 'inherit',
     cwd: path.join(__dirname, '..'),
   });
@@ -238,26 +257,39 @@ function startDevServers() {
 
 async function main() {
   console.log('\n');
-  log('Starting VN Club development environment...\n');
+  log(`Starting VN Club ${IS_PROD ? 'production' : 'development'} environment...\n`);
 
-  // Check Docker
-  if (!isDockerRunning()) {
-    logError('Docker is not running!');
-    logError('Please start Docker Desktop and try again.');
-    process.exit(1);
-  }
-
-  // Start containers if not running
-  if (!areContainersRunning()) {
-    if (!startContainers()) {
+  // If the API is already answering, this shell does not need Docker access.
+  const backendAlreadyUp = await isApiReady();
+  if (!backendAlreadyUp) {
+    // Check Docker
+    const docker = getDockerStatus();
+    if (docker !== 'ok') {
+      if (docker === 'denied') {
+        logError('Docker is running, but this user cannot access /var/run/docker.sock.');
+        logError('Add yourself to the docker group, then log out and back in:');
+        logError('  sudo usermod -aG docker $USER');
+      } else {
+        logError('Docker is not running!');
+        logError('Please start Docker Desktop and try again.');
+      }
       process.exit(1);
     }
+
+    // Start containers if not running
+    if (!areContainersRunning()) {
+      if (!startContainers()) {
+        process.exit(1);
+      }
+    } else {
+      log('Docker containers already running');
+    }
   } else {
-    log('Docker containers already running');
+    log('Backend is already running');
   }
 
   // Wait for API
-  const apiReady = await waitForApi();
+  const apiReady = backendAlreadyUp || await waitForApi();
   if (!apiReady) {
     logError('API failed to start. Check Docker logs with: docker compose logs -f');
     process.exit(1);
@@ -276,7 +308,7 @@ async function main() {
   logSuccess('Starting Next.js...\n');
 
   // Start Next.js
-  startDevServers();
+  startNextServer();
 }
 
 // Guarded so the individual steps can be exercised without booting the

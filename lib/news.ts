@@ -465,8 +465,9 @@ export async function fetchNewsDates(days = 90): Promise<NewsDateInfo[]> {
   return data?.dates ?? [];
 }
 
-/** The public base for a request made from the browser. Server code goes through getJson. */
-export const PUBLIC_API_BASE = process.env.NEXT_PUBLIC_VNDB_STATS_API || '';
+/** Same-origin proxy base for requests made from the browser. Server code goes through getJson. */
+export const PUBLIC_API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND_BASE ?? '/api/backend';
 
 /** The feed URL a browser asks for, with whichever cursor and filters apply. */
 export function feedUrl(

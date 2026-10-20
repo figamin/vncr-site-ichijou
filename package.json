@@ -11,7 +11,7 @@
     "prebuild:prod": "npx tsx scripts/generate-search-index.ts && npx tsx scripts/cache-vndb-images.ts",
     "build": "next build",
     "start": "next start",
-    "prod": "next build && next start",
+    "prod": "next build && node scripts/start-dev.js --prod",
     "lint": "eslint --cache --cache-location .next/cache/eslint/ app components lib scripts",
     "gate": "node scripts/gate.mjs",
     "smoke": "node scripts/smoke.mjs",

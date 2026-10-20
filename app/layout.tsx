@@ -164,9 +164,6 @@ export default function RootLayout({
         <meta name="color-scheme" content="light dark" />
         <style dangerouslySetInnerHTML={{ __html: THEME_SCHEME }} />
         <link rel="alternate" type="application/rss+xml" title="VN Club - Visual Novel News" href="/feed.xml" />
-        {process.env.NEXT_PUBLIC_VNDB_STATS_API && (
-          <link rel="preconnect" href={process.env.NEXT_PUBLIC_VNDB_STATS_API} />
-        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(organizationSchema) }}

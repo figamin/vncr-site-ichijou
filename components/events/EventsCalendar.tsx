@@ -10,6 +10,7 @@ import { NSFWImage } from '@/components/NSFWImage';
 import { getCoverSrc } from '@/lib/vndb-image-cache';
 import DayOverview from './DayOverview';
 import { vnIdFromUrl } from '@/lib/club-history';
+import { getBackendUrlOptional } from '@/lib/config';
 
 // Week starts on Sunday.
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -44,7 +45,7 @@ interface Props {
 }
 
 async function fetchMonth(year: number, month: number): Promise<EventItem[]> {
-  const base = process.env.NEXT_PUBLIC_VNDB_STATS_API;
+  const base = getBackendUrlOptional();
   if (!base) return [];
   try {
     const res = await fetch(`${base}/api/v1/events?year=${year}&month=${month}`, {

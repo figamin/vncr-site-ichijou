@@ -27,7 +27,11 @@ Issues and pull requests are no longer answered. Forks are welcome under the lic
 Guide content lives in `content/guides/` as MDX files. The site is built with Next.js and Tailwind CSS, with a FastAPI + PostgreSQL backend that imports VNDB's public data dumps.
 
 ```bash
-# Frontend development
+# Configuration (required: the frontend reads the backend URL from .env.local)
+cp .env.example .env.local
+cp vndb-stats-backend/.env.example vndb-stats-backend/.env
+
+# Frontend development (also starts the Docker backend and imports data if needed)
 npm install
 npm run dev
 
@@ -36,6 +40,9 @@ npm run api:dev
 
 # Both together
 npm run dev:all
+
+# Local production build + server (also starts the Docker backend)
+npm run prod
 ```
 
 ## Data Sources

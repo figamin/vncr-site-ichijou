@@ -7,6 +7,7 @@ import type { EventItem } from '@/lib/events';
 import { eventMeta, formatTime } from './event-meta';
 import { useTitlePreference, getDisplayTitle } from '@/lib/title-preference';
 import { getCoverSrc } from '@/lib/vndb-image-cache';
+import { getBackendUrlOptional } from '@/lib/config';
 
 interface VotdData {
   vn_id: string;
@@ -35,7 +36,7 @@ function stripFurigana(s: string): string {
 }
 
 async function fetchJson<T>(path: string): Promise<T | null> {
-  const base = process.env.NEXT_PUBLIC_VNDB_STATS_API;
+  const base = getBackendUrlOptional();
   if (!base) return null;
   try {
     const res = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(10000) });
