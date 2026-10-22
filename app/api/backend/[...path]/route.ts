@@ -61,12 +61,24 @@ async function forward(request: NextRequest, context: RouteContext) {
 
   const headers = new Headers(request.headers);
   for (const name of HOP_BY_HOP_HEADERS) headers.delete(name);
+  // Do not pass the browser-facing origin to the backend. FastAPI's
+  // trailing-slash redirects are absolute, so forwarding Host/X-Forwarded-Host
+  // makes it redirect to https://vnclub.figamin.net/api/v1/... — the frontend,
+  // which then returns its 404 page instead of the API response. The backend
+  // only needs the client IP (set below) for per-IP rate limiting.
+  headers.delete('host');
+  headers.delete('x-forwarded-host');
+  headers.delete('x-forwarded-proto');
+  headers.delete('x-forwarded-port');
+  headers.delete('forwarded');
   // Ask for an uncompressed body so the response headers we return match it.
   headers.delete('accept-encoding');
   headers.delete('content-length');
 
   // Keep per-visitor IPs so backend rate limits apply to the visitor, not to Next.
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+  headers.delete('x-forwarded-for');
+  headers.delete('x-real-ip');
   if (clientIp) {
     headers.set('x-forwarded-for', clientIp);
     headers.set('x-real-ip', clientIp);
