@@ -57,7 +57,7 @@ let failed = 0;
 
 // 1. Types. This one is absolute: there is no baseline and no tolerance.
 process.stdout.write('typecheck ... ');
-const types = run('typecheck', 'npx', ['tsc', '--noEmit']);
+const types = run('typecheck', 'bunx', ['--bun', 'tsc', '--noEmit']);
 if (types.status === 0) {
   console.log('ok');
 } else {
@@ -68,8 +68,8 @@ if (types.status === 0) {
 
 // 2. Lint, against the recorded count.
 process.stdout.write('lint ..... ');
-const lint = run('lint', 'npx', [
-  'eslint', '--cache', '--cache-location', '.next/cache/eslint-gate/',
+const lint = run('lint', 'bunx', [
+  '--bun', 'eslint', '--cache', '--cache-location', '.next/cache/eslint-gate/',
   '-f', 'json', 'app', 'components', 'lib',
 ], { capture: true });
 
@@ -114,7 +114,7 @@ if (errorCount === null) {
 // in review: a utility beside a primitive that already sets the property is silently ignored.
 if (!has('no-dead-utils')) {
   process.stdout.write('dead utils ... ');
-  const dead = run('dead-utilities', 'node', ['scripts/dead-utilities.mjs']);
+  const dead = run('dead-utilities', 'bun', ['scripts/dead-utilities.mjs']);
   if (dead.status === 0) {
     console.log('ok');
   } else {
@@ -127,7 +127,7 @@ if (!has('no-dead-utils')) {
 // 4. Backend tests. They run inside the container, which is where pytest lives.
 if (!has('no-api')) {
   process.stdout.write('api tests  ... ');
-  const api = run('api-test', 'npm', ['run', 'api:test']);
+  const api = run('api-test', 'bun', ['run', 'api:test']);
   if (api.status === 0) {
     console.log('ok');
   } else {

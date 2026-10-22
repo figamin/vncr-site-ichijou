@@ -67,7 +67,7 @@ async def populate_trait_groups():
         raise FileNotFoundError(
             "Traits dump file not found. "
             "Checked paths: " + ", ".join(str(p) for p in possible_paths) + ". "
-            "Run 'npm run api:import' first to download VNDB dumps."
+            "Run 'bun run api:import' first to download VNDB dumps."
         )
 
     # Load traits dump

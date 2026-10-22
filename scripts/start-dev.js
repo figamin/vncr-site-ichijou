@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Development/production startup script
  * Automatically starts Docker containers and imports data if needed.
@@ -239,7 +239,7 @@ function startNextServer() {
   fs.mkdirSync(process.env.VNDB_CACHE_DIR, { recursive: true });
   log(`Image directory: ${process.env.VNDB_CACHE_DIR}`);
 
-  // Run Next directly via node, not through a shell. The cmd.exe a shell wraps it
+  // Run Next directly via Bun, not through a shell. The cmd.exe a shell wraps it
   // in mangles Ctrl+C on Windows (closing the whole terminal); the bin as a plain
   // child can be torn down cleanly.
   const nextBin = require.resolve('next/dist/bin/next');

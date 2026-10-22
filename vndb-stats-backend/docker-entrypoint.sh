@@ -42,7 +42,7 @@ try:
     asyncio.run(run_pending_migrations())
 except Exception as e:
     print(f'Data migration warning: {e}')
-    print('Data migrations can be run manually later with: npm run api:data-migrate')
+    print('Data migrations can be run manually later with: bun run api:data-migrate')
 "
 echo "✓ Data migrations complete"
 

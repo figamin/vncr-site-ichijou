@@ -81,7 +81,7 @@ async def populate_title_jp():
         raise FileNotFoundError(
             "VN titles dump file not found. "
             "Checked paths: " + ", ".join(str(p) for p in possible_paths) + ". "
-            "Run 'npm run api:import' first to download and extract VNDB dumps."
+            "Run 'bun run api:import' first to download and extract VNDB dumps."
         )
 
     # Load Japanese titles from dump

@@ -73,7 +73,7 @@ docker-compose exec db psql -U vndb -d vndb_stats -c "SELECT COUNT(*) FROM visua
 ```
 
 - If count > 0: Data exists! The issue is likely a code/schema problem, not missing data.
-- If count = 0: Run `npm run api:import` to import data.
+- If count = 0: Run `bun run api:import` to import data.
 
 ### "API returns empty results"
 
@@ -107,7 +107,7 @@ cd vndb-stats-backend
 docker-compose up -d
 
 # Wait for services to be ready, then import data
-npm run api:import   # Takes ~20-30 minutes
+bun run api:import   # Takes ~20-30 minutes
 
 # Data is now persisted in Docker volumes
 ```
@@ -186,7 +186,7 @@ docker-compose exec db psql -U vndb -d vndb_stats -c "
 
 The worker container has `DEV_MODE=true` by default, which:
 - Prevents automatic imports on startup
-- Requires manual `npm run api:import` for first import
+- Requires manual `bun run api:import` for first import
 - Prevents accidental long-running imports during development
 
 To enable automatic daily updates (production), set `DEV_MODE=false`.
@@ -206,7 +206,7 @@ docker-compose exec db psql -U vndb -d vndb_stats -c "SELECT COUNT(*) FROM visua
 | VN Count | Diagnosis | Fix |
 |----------|-----------|-----|
 | > 0 | Data exists | Debug code/schema, NOT reimport |
-| = 0 | Empty database | `npm run api:import` |
+| = 0 | Empty database | `bun run api:import` |
 
 ### Common Misdiagnoses to Avoid
 
@@ -277,7 +277,7 @@ Nuclear option (loses all data, use only as last resort):
 ```bash
 docker-compose down -v
 docker-compose up -d
-npm run api:import   # 20-30 minutes
+bun run api:import   # 20-30 minutes
 ```
 
 ---
@@ -289,7 +289,7 @@ npm run api:import   # 20-30 minutes
 | Code change | Nothing (hot reload) | 0 sec |
 | Schema change | `alembic` migration | 5-10 sec |
 | Container rebuild | `docker-compose up --build` | 30 sec |
-| First time setup | `npm run api:import` | 20-30 min |
-| Deleted volumes | `npm run api:import` | 20-30 min |
+| First time setup | `bun run api:import` | 20-30 min |
+| Deleted volumes | `bun run api:import` | 20-30 min |
 
 **The data persists. You rarely need to reimport. Use migrations for schema changes.**

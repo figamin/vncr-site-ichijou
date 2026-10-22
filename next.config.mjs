@@ -82,7 +82,7 @@ const nextConfig = {
   ...(allowedDevOrigins.length ? { allowedDevOrigins } : {}),
   trailingSlash: true,
   poweredByHeader: false,
-  compress: false, // nginx handles gzip, no need for Node.js to double-compress
+  compress: false, // Angie handles gzip; no need for the app runtime to double-compress
   // Security and caching headers
   async headers() {
     return [

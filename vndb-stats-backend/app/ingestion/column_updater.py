@@ -244,7 +244,7 @@ async def main():
     except FileNotFoundError as e:
         logger.error(str(e))
         logger.info("Make sure the dump files have been downloaded and extracted.")
-        logger.info("Run 'npm run api:import' first if needed.")
+        logger.info("Run 'bun run api:import' first if needed.")
         raise SystemExit(1)
 
 

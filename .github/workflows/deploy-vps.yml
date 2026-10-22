@@ -28,13 +28,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: bun run build
 
   # Hard gate: the deploy runs ONLY if every other check on the commit is green.
-  # Waits for the Security Scan jobs (npm audit, pip-audit, pytest) and the CodeQL
+  # Waits for the Security Scan jobs (bun audit, pip-audit, pytest) and the CodeQL
   # "Analyze" checks to finish and pass, then confirms CodeQL opened no critical/high alerts. Any
   # red check, or any open critical/high finding, blocks the deploy and the live
   # site stays on the last good version. Fail-closed: a check that never reports,
@@ -56,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           REQUIRED=(
-            "Frontend dependencies (npm audit)"
+            "Frontend dependencies (bun audit)"
             "Backend dependencies (pip-audit)"
             "Backend tests (pytest)"
             "Analyze (actions)"

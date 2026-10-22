@@ -3,7 +3,7 @@ name: Security Scan
 # Dependency vulnerability scanning for both halves of the stack.
 # Separate from the deploy workflow, so a finding surfaces as a failed check
 # without blocking deploys. Triage real findings; for an accepted advisory add
-# `--ignore-vuln <ID>` (pip-audit) or remove the offending dep (npm).
+# `--ignore-vuln <ID>` (pip-audit) or remove the offending dep (bun).
 
 on:
   push:
@@ -61,13 +61,19 @@ jobs:
         run: python -m pytest tests/ -q
 
   frontend-deps:
-    name: Frontend dependencies (npm audit)
+    name: Frontend dependencies (bun audit)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      # Runtime deps only. npm has no per-advisory ignore, so one unfixable
-      # build-tool advisory would block deploys indefinitely. Dependabot still
-      # reports dev-dependency findings.
-      - name: Audit npm dependencies
-        run: npm audit --audit-level=high --omit=dev
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      # Bun audits the lockfile, including dev-only tooling. The two ignored
+      # advisories have no published fix and are build-time only; Dependabot
+      # still reports dev-dependency findings.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Audit Bun dependencies
+        run: bun audit --audit-level=high --ignore GHSA-vfj7-8cjw-p6xm --ignore GHSA-hp3w-g68c-fv3c

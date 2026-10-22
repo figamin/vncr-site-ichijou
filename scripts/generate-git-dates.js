@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Generate .git-dates.json with git commit dates for all guide files.
  * Run BEFORE Docker build since .git is excluded from the Docker context.

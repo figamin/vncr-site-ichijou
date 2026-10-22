@@ -13,7 +13,7 @@ and the per-title columns browse sorts on. Nothing is downloaded.
 Usage:
     python scripts/refresh_leaderboards.py
     python scripts/refresh_leaderboards.py --dry-run   # build and report, write nothing
-    # or via npm:
+    # or via bun:
     bun run api:leaderboards
 """
 

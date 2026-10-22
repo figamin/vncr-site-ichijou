@@ -176,7 +176,7 @@ async def diagnose_issue(error_message: str) -> str:
                 f"DIAGNOSIS: Empty database\n"
                 f"The database is empty (0 VNs).\n"
                 f"FIX: Run initial import.\n"
-                f"Command: npm run api:import"
+                f"Command: bun run api:import"
             )
 
     # Check for empty results
@@ -196,7 +196,7 @@ async def diagnose_issue(error_message: str) -> str:
                 f"DIAGNOSIS: Empty database\n"
                 f"The database is empty (0 VNs).\n"
                 f"FIX: Run initial import.\n"
-                f"Command: npm run api:import"
+                f"Command: bun run api:import"
             )
 
     # Default: show status
@@ -216,7 +216,7 @@ async def diagnose_issue(error_message: str) -> str:
             f"DIAGNOSIS: Empty database\n"
             f"The database has no data.\n"
             f"FIX: Run initial import.\n"
-            f"Command: npm run api:import"
+            f"Command: bun run api:import"
         )
 
 
@@ -253,7 +253,7 @@ def print_status_report(status: dict) -> None:
     print("=" * 60)
 
     if status["needs_import"]:
-        print("ACTION NEEDED: Database is empty. Run: npm run api:import")
+        print("ACTION NEEDED: Database is empty. Run: bun run api:import")
     else:
         print("STATUS: Database is populated and ready.")
 
