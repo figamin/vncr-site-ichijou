@@ -57,7 +57,25 @@ if ! command -v bun >/dev/null; then
   echo "Bun is missing. Install it first:" >&2
   echo "  curl -fsSL https://bun.sh/install | BUN_INSTALL=/opt/bun bash" >&2
   echo "  ln -sf /opt/bun/bin/bun /usr/local/bin/bun" >&2
+  echo "  ln -sf /opt/bun/bin/bunx /usr/local/bin/bunx" >&2
   exit 1
+fi
+
+# The site's package scripts call bunx, and the web unit's PATH only includes
+# /usr/local/bin. Make sure both entry points exist there.
+BUN_REAL=$(readlink -f "$(command -v bun)")
+if [ ! -x /usr/local/bin/bun ]; then
+  ln -sf "$BUN_REAL" /usr/local/bin/bun
+fi
+if [ ! -x /usr/local/bin/bunx ]; then
+  BUNX_REAL="$(dirname "$BUN_REAL")/bunx"
+  if [ -x "$BUNX_REAL" ]; then
+    ln -sf "$BUNX_REAL" /usr/local/bin/bunx
+  else
+    # bunx is normally a symlink to the bun binary; keep that behavior if the
+    # installer omitted the second symlink.
+    ln -sf "$BUN_REAL" /usr/local/bin/bunx
+  fi
 fi
 
 if ! command -v uv >/dev/null; then

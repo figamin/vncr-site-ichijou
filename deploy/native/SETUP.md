@@ -152,6 +152,7 @@ If you deliberately use a different PostgreSQL version, adjust the cluster path
 ```bash
 curl -fsSL https://bun.sh/install | sudo BUN_INSTALL=/opt/bun bash
 sudo ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+sudo ln -sf /opt/bun/bin/bunx /usr/local/bin/bunx
 
 curl -LsSf https://astral.sh/uv/install.sh \
   | sudo env UV_INSTALL_DIR=/usr/local/bin sh
@@ -161,8 +162,12 @@ Verify:
 
 ```bash
 bun --version
+command -v bunx
 uv --version
 ```
+
+Both `bun` and `bunx` must be on the service `PATH`; the package scripts
+invoke `bunx --bun next ...`.
 
 ### Angie
 
@@ -906,6 +911,20 @@ Check, in order:
 5. Redis on the core is bound to `127.0.0.1` and uses the same password.
 6. `ExitOnForwardFailure=yes` will abort if either remote port is already in
    use.
+
+### `bunx: command not found`
+
+The Bun install script creates both `bun` and `bunx`, but a manual install may
+have linked only `bun`. Link the matching `bunx`:
+
+```bash
+BUN_REAL=$(readlink -f "$(command -v bun)")
+sudo ln -sf "$(dirname "$BUN_REAL")/bunx" /usr/local/bin/bunx
+command -v bunx
+```
+
+Then rerun `prepare-app.sh`. The web service also needs `bunx` on its
+`PATH=/usr/local/bin:/usr/bin:/bin`.
 
 ### Frontend build is OOM-killed
 

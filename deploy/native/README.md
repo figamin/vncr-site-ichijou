@@ -68,6 +68,7 @@ Bun is already present on the target host (`/usr/local/bin/bun`). If not:
 ```bash
 curl -fsSL https://bun.sh/install | sudo BUN_INSTALL=/opt/bun bash
 sudo ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+sudo ln -sf /opt/bun/bin/bunx /usr/local/bin/bunx
 ```
 
 `uv` is used to install a pinned Python 3.11 environment without touching the
