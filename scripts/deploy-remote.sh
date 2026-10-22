@@ -83,7 +83,7 @@ if [ -n "${BACKUP_ENCRYPTION_KEY-}" ]; then
 fi
 
 # Generate git dates for guide pages (Docker has no .git)
-node scripts/generate-git-dates.js
+bun scripts/generate-git-dates.js
 
 docker compose -f docker-compose.prod.yml --env-file deploy/.env.prod up -d --build
 # Recreate nginx: git pull creates new file inodes, but Docker bind mounts

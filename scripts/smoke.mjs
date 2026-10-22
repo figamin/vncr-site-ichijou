@@ -5,11 +5,11 @@
 // server for the routes that matter and checks that each one answers and still contains the
 // thing that makes it that page.
 //
-// It needs `npm run dev` up. Without it every route fails at once, which the summary says
+// It needs `bun run dev` up. Without it every route fails at once, which the summary says
 // plainly rather than reporting twelve separate failures.
 //
-//   node scripts/smoke.mjs
-//   node scripts/smoke.mjs --base http://localhost:3000
+//   bun scripts/smoke.mjs
+//   bun scripts/smoke.mjs --base http://localhost:3000
 
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => {

@@ -7,7 +7,7 @@
  * First run will download ~9GB of images.
  * Subsequent runs only download new/changed images.
  *
- * Usage: npx tsx scripts/sync-vndb-covers.ts [--convert-only] [--skip-sync]
+ * Usage: bun scripts/sync-vndb-covers.ts [--convert-only] [--skip-sync]
  */
 
 import { execSync, spawn } from 'child_process';

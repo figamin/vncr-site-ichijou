@@ -6,7 +6,7 @@ Run this to see if you actually need to reimport data (you probably don't!).
 Usage:
     python scripts/check_db_status.py
     # or via npm:
-    npm run api:status
+    bun run api:status
 """
 
 import asyncio

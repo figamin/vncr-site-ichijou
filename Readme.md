@@ -32,18 +32,22 @@ cp .env.example .env.local
 cp vndb-stats-backend/.env.example vndb-stats-backend/.env
 
 # Frontend development (also starts the Docker backend and imports data if needed)
-npm install
-npm run dev
+bun install
+bun run dev
 
 # Backend (Docker)
-npm run api:dev
+bun run api:dev
 
 # Both together
-npm run dev:all
+bun run dev:all
 
 # Local production build + server (also starts the Docker backend)
-npm run prod
+bun run prod
 ```
+
+The frontend Dockerfile is Bun-only: `oven/bun:1.4.3-alpine` installs with
+`bun install --frozen-lockfile`, builds with `bun run build`, and runs the
+standalone server with `bun server.js`. Node.js and npm are not installed.
 
 ## Data Sources
 

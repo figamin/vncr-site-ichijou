@@ -244,7 +244,7 @@ services:
       - -c
       - >-
         apk add --no-cache rsync > /dev/null 2>&1;
-        npx tsx scripts/sync-vndb-covers.ts "$@";
+        bun scripts/sync-vndb-covers.ts "$@";
         chown -R 1000:1000 /app/public/vndb-images
       - --
     command: []

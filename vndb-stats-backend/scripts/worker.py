@@ -556,12 +556,12 @@ async def check_and_update_if_stale():
         logger.info("DEV_MODE=true - Automatic imports disabled")
         if not status["has_data"]:
             logger.info("")
-            logger.info("To import data, run: npm run api:import")
+            logger.info("To import data, run: bun run api:import")
             logger.info("")
         elif not status["has_similarities"]:
             logger.warning("")
             logger.warning("Similarity tables are empty! Related Games and Users Also Read will not work.")
-            logger.warning("To fix, run: npm run api:import (or wait for daily update in production)")
+            logger.warning("To fix, run: bun run api:import (or wait for daily update in production)")
             logger.warning("")
         return
 

@@ -16,7 +16,7 @@
  * Images will be saved to .cache/vndb/ and served via the /img/ API route.
  * Converts images to WebP for smaller file sizes.
  *
- * Usage: npx tsx scripts/cache-vndb-images.ts [--top N] [--vn-ids v1,v2,...] [--skip]
+ * Usage: bun scripts/cache-vndb-images.ts [--top N] [--vn-ids v1,v2,...] [--skip]
  */
 
 import fs from 'fs';

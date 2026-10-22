@@ -14,7 +14,7 @@ Usage:
     python scripts/refresh_leaderboards.py
     python scripts/refresh_leaderboards.py --dry-run   # build and report, write nothing
     # or via npm:
-    npm run api:leaderboards
+    bun run api:leaderboards
 """
 
 import argparse

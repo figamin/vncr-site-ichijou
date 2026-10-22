@@ -136,7 +136,7 @@ function runImport() {
     logSuccess('Import completed!');
     return true;
   } catch (e) {
-    logError('Import failed. You can run it manually later with: npm run api:import');
+    logError('Import failed. You can run it manually later with: bun run api:import');
     return false;
   }
 }
@@ -175,11 +175,11 @@ function ensureSearchIndex() {
 
   log('Rebuilding search index from content/guides...');
   try {
-    execSync(`npx tsx "${SEARCH_INDEX_SCRIPT}"`, { cwd: ROOT_DIR, stdio: 'ignore' });
+    execSync(`bun "${SEARCH_INDEX_SCRIPT}"`, { cwd: ROOT_DIR, stdio: 'ignore' });
     logSuccess('Search index rebuilt');
   } catch {
     logError('Search index rebuild failed; site search will serve the previous index');
-    logError('Rebuild it manually with: npm run generate-search');
+    logError('Rebuild it manually with: bun run generate-search');
   }
 }
 

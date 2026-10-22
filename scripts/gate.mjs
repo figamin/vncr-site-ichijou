@@ -10,9 +10,9 @@
 // may not add to the count. Fixing some lowers the baseline, and the baseline file is committed
 // beside the code so the count cannot quietly regress.
 //
-//   node scripts/gate.mjs              every check
-//   node scripts/gate.mjs --no-api     skip the backend tests when Docker is not up
-//   node scripts/gate.mjs --update     record the current lint count as the new baseline
+//   bun scripts/gate.mjs              every check
+//   bun scripts/gate.mjs --no-api     skip the backend tests when Docker is not up
+//   bun scripts/gate.mjs --update     record the current lint count as the new baseline
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
