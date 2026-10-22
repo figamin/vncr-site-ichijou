@@ -131,7 +131,7 @@ async def sweep_decks() -> tuple[list[dict], int | None]:
     offset = 0
 
     async with httpx.AsyncClient(
-        headers={"User-Agent": "vnclub.org difficulty mirror"},
+        headers={"User-Agent": "vnclub.figamin.net difficulty mirror"},
         follow_redirects=True,
     ) as client:
         while True:

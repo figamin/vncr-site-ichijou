@@ -55,7 +55,7 @@ const banners = [
 ];
 
 function bannerSnippet(banner: { src: string; alt: string }) {
-  return `<a href="https://vnclub.org/"><img src="https://vnclub.org${banner.src}" alt="${banner.alt}" width="200" height="40"></a>`;
+  return `<a href="https://vnclub.figamin.net/"><img src="https://vnclub.figamin.net${banner.src}" alt="${banner.alt}" width="200" height="40"></a>`;
 }
 
 const partners = [

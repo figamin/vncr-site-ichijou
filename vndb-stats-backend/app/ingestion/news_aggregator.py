@@ -83,7 +83,7 @@ HTTP_TIMEOUT = aiohttp.ClientTimeout(total=60)
 REDDIT_PAUSE = 61.0
 PER_HOST_CONNECTIONS = 8
 # Some outlets refuse a bare library client; every request says who is asking.
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 
 
 def _http() -> aiohttp.ClientSession:

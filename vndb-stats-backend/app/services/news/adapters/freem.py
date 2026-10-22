@@ -31,7 +31,7 @@ MAX_ITEMS = 20
 REGISTERED_WINDOW = timedelta(days=7)
 REQUEST_GAP = 3
 NSFW_COVER = 1.5
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 # The site localises its labels by the request language; the date row is read in either.
 HEADERS = {"User-Agent": USER_AGENT, "Accept-Language": "ja"}
 

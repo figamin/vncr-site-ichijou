@@ -35,7 +35,7 @@ KEEP_GENRES = ("アドベンチャー", "ノベル")
 PREORDER_MARK = "【予約】"
 NSFW_COVER = 1.5
 JST = timezone(timedelta(hours=9))
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 
 _TAG = re.compile(r"<[^>]+>")
 _SPACE = re.compile(r"\s+")

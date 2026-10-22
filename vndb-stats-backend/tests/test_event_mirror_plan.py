@@ -18,7 +18,7 @@ NOW = datetime(2026, 9, 7, 10, 0, tzinfo=timezone.utc)
 
 def cfg(**kwargs) -> em.MirrorConfig:
     base = dict(
-        calendar_url="https://vnclub.org",
+        calendar_url="https://vnclub.figamin.net",
         targets={
             "movie_night": em.ChannelTarget(channel_id=111, entity="voice", label="talk"),
             "roudoku": em.ChannelTarget(channel_id=222, entity="voice", label="roudoku-chamber"),
@@ -144,7 +144,7 @@ def test_the_description_names_the_channel_the_roles_command_and_the_calendar():
     text = only([item()]).description
     assert "In talk" in text
     assert "/roles" in text
-    assert "https://vnclub.org/events?date=2026-09-12" in text
+    assert "https://vnclub.figamin.net/events?date=2026-09-12" in text
 
 
 def test_the_roles_hint_never_names_a_role():
@@ -158,7 +158,7 @@ def test_the_practical_lines_survive_a_description_that_would_overflow():
     """The calendar blurb is what gets cut, never the channel or the link."""
     entry = only([item(description="y" * 4000)])
     assert len(entry.description) <= em.DESCRIPTION_LIMIT
-    assert "https://vnclub.org/events?date=2026-09-12" in entry.description
+    assert "https://vnclub.figamin.net/events?date=2026-09-12" in entry.description
     assert "/roles" in entry.description
 
 
@@ -172,7 +172,7 @@ def test_the_practical_lines_come_before_the_blurb():
     must be inside them."""
     text = only([item(description="Weekly community movie night.")]).description
     assert text.index("/roles") < text.index("Weekly community")
-    assert text.index("vnclub.org/events") < text.index("Weekly community")
+    assert text.index("vnclub.figamin.net/events") < text.index("Weekly community")
 
 
 # ── Times and placement ───────────────────────────────────────
@@ -209,7 +209,7 @@ def test_a_type_with_no_channel_falls_back_to_the_calendar():
     entry = only([item()], cfg(targets={}))
     assert entry.entity == "external"
     assert entry.channel_id is None
-    assert entry.location == "https://vnclub.org/events"
+    assert entry.location == "https://vnclub.figamin.net/events"
 
 
 def test_a_text_channel_is_named_rather_than_pointed_at():
@@ -431,7 +431,7 @@ def test_a_marker_takes_no_channel_even_when_a_fallback_is_set():
                   external_key="auto:season_start:2026-10", start_at="2026-10-01T00:00:00+00:00")
     entry = only([marker], cfg(targets={"season_start": fallback}))
     assert "In #announcements" not in entry.description
-    assert entry.location == "https://vnclub.org/events"
+    assert entry.location == "https://vnclub.figamin.net/events"
 
 
 def test_every_type_that_happens_somewhere_is_offered_a_channel():

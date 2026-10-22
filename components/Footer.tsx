@@ -161,7 +161,7 @@ export default function Footer() {
               )}
               <li>
                 <a
-                  href="mailto:contact@vnclub.org"
+                  href="mailto:contact@vnclub.figamin.net"
                   className="transition-colors hover:text-[color:var(--kohaku)]"
                 >
                   Contact

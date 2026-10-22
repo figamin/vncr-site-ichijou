@@ -36,7 +36,7 @@ MAX_ITEMS = 20
 RELEASED_WINDOW = timedelta(days=14)
 REQUEST_GAP = 3
 NSFW_COVER = 1.5
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 
 _SECTION = re.compile(r'<h3 class="section-find">\s*([^<]+?)\s*</h3>')
 _ITEM = re.compile(r'<li class="product_(\d+)"')

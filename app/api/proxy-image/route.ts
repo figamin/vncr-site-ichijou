@@ -290,13 +290,16 @@ async function doFetchAndCache(
 /**
  * Delete cached files older than 90 days. Runs in the background
  * on a small fraction of cache writes to keep disk usage bounded.
+ *
+ * These are runtime cache paths outside the project tree, so they are marked
+ * `turbopackIgnore` to keep the build from tracing the whole project.
  */
 async function evictStaleCache(): Promise<void> {
   const cacheDir = getCacheDir();
   const now = Date.now();
   let subdirs: string[];
   try {
-    subdirs = await fs.readdir(cacheDir);
+    subdirs = await fs.readdir(/*turbopackIgnore: true*/ cacheDir);
   } catch {
     return;
   }
@@ -304,7 +307,7 @@ async function evictStaleCache(): Promise<void> {
     const subPath = path.join(cacheDir, sub);
     let files: string[];
     try {
-      files = await fs.readdir(subPath);
+      files = await fs.readdir(/*turbopackIgnore: true*/ subPath);
     } catch {
       continue;
     }
@@ -362,7 +365,7 @@ export async function GET(request: NextRequest) {
   if (width) {
     const variantPath = getCachePath(decodedUrl, width);
     try {
-      const variant = await fs.readFile(variantPath);
+      const variant = await fs.readFile(/*turbopackIgnore: true*/ variantPath);
       if (!(await isCacheStale(variantPath))) {
         return new NextResponse(new Uint8Array(variant), {
           headers: {
@@ -377,7 +380,7 @@ export async function GET(request: NextRequest) {
     }
     let base: Buffer | null = null;
     try {
-      base = await fs.readFile(cachePath);
+      base = await fs.readFile(/*turbopackIgnore: true*/ cachePath);
     } catch {
       const rateLimitResult = checkRateLimit(`proxy-image:${clientIp}`, RATE_LIMITS.imageProxy);
       if (rateLimitResult.allowed) {
@@ -411,7 +414,7 @@ export async function GET(request: NextRequest) {
   let isStale = true;
 
   try {
-    cachedBuffer = await fs.readFile(cachePath);
+    cachedBuffer = await fs.readFile(/*turbopackIgnore: true*/ cachePath);
     isStale = await isCacheStale(cachePath);
   } catch {
     // Cache miss

@@ -34,7 +34,7 @@ WHITE = (245, 245, 248)
 MUTED = (188, 192, 204)
 BACKDROP = (18, 18, 24)
 
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 FETCH_TIMEOUT = 15
 # The art is bounded before it reaches the decoder rather than after: the address
 # comes from a calendar row, which an admin can edit by hand.

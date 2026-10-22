@@ -50,7 +50,7 @@ DAYS_BACK = 3
 RANKING_ROWS = 20
 NSFW_COVER = 1.5
 KEEP_TYPES = {"ADV", "DNV"}
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 
 _HEADING = re.compile(r'<h3 class="work_update">\s*(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日')
 _RECORD = re.compile(r'<div hidden class="ga4_event_item_(\w+)"([^>]*)>')

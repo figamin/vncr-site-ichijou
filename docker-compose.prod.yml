@@ -94,11 +94,11 @@ services:
       - ENABLE_API_DOCS=true
       # The origins the browser is allowed to call the API from. Overridable in
       # deploy/.env.prod, which is where a new front end origin is added.
-      - CORS_ORIGINS=${CORS_ORIGINS:-["https://vnclub.org","https://api.vnclub.org","https://beta.vnclub.org"]}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["https://vnclub.figamin.net","https://api.vnclub.figamin.net","https://beta.vnclub.figamin.net"]}
       - VNDB_API_URL=https://api.vndb.org/kana
       - VNDB_API_TOKEN=${VNDB_API_TOKEN:-}
       - DUMP_STORAGE_PATH=/app/data
-      - FRONTEND_URL=https://vnclub.org
+      - FRONTEND_URL=https://vnclub.figamin.net
       - BLACKLIST_REFRESH_SECRET=${BLACKLIST_REFRESH_SECRET:-}
       - ADMIN_API_KEY=${ADMIN_API_KEY:-}
       # Pairs with the web service's NEXT_PUBLIC_TURNSTILE_SITE_KEY build arg.
@@ -198,7 +198,7 @@ services:
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
       - DISCORD_ADMIN_USER_IDS=${DISCORD_ADMIN_USER_IDS:-}
       - TMDB_API_KEY=${TMDB_API_KEY:-}
-      - FRONTEND_URL=https://vnclub.org
+      - FRONTEND_URL=https://vnclub.figamin.net
       - BLACKLIST_REFRESH_SECRET=${BLACKLIST_REFRESH_SECRET:-}
       - DISCORD_LOG_WEBHOOK_URL=${DISCORD_LOG_WEBHOOK_URL:-}
       - PYTHONUNBUFFERED=1
@@ -321,7 +321,7 @@ services:
       # Pairs with the api service, which the nightly cached pages written here must match.
       - REC_PREDICTED_RATING=1
       # The rebuild asks the site to drop its cached trend feed; same secret the bot uses.
-      - FRONTEND_URL=https://vnclub.org
+      - FRONTEND_URL=https://vnclub.figamin.net
       - BLACKLIST_REFRESH_SECRET=${BLACKLIST_REFRESH_SECRET:-}
       - PYTHONUNBUFFERED=1
     depends_on:

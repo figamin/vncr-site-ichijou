@@ -34,7 +34,7 @@ export function formatChangelogDay(date: string): string {
 
 export const PROJECT_META: Record<ChangelogProject, ProjectMeta> = {
   site: {
-    label: 'vnclub.org',
+    label: 'vnclub.figamin.net',
     blurb: 'The website',
     chip: 'cat-tag cat-tag--site',
   },
@@ -50,7 +50,7 @@ export const PROJECT_META: Record<ChangelogProject, ProjectMeta> = {
   },
   ichijou: {
     label: 'Ichijou',
-    blurb: 'vnclub.org Discord bot',
+    blurb: 'vnclub.figamin.net Discord bot',
     chip: 'cat-tag cat-tag--ichijou',
   },
 };
@@ -326,7 +326,7 @@ export const changelogEntries: ChangelogEntry[] = [
     date: '2026-02-08',
     project: 'ichijou',
     title: 'Ichijou launched',
-    description: 'A new Discord bot for vnclub.org, launched alongside the stats backend.',
+    description: 'A new Discord bot for vnclub.figamin.net, launched alongside the stats backend.',
   },
   {
     date: '2026-02-08',
@@ -342,7 +342,7 @@ export const changelogEntries: ChangelogEntry[] = [
     date: '2026-02-03',
     project: 'muramasa',
     title: 'VN news feed retired',
-    description: 'The in-server VN and eroge news feed was removed. News coverage moved to the vnclub.org news page.',
+    description: 'The in-server VN and eroge news feed was removed. News coverage moved to the vnclub.figamin.net news page.',
     links: [{ label: 'News', href: '/news/' }],
   },
   {
@@ -506,7 +506,7 @@ export const changelogEntries: ChangelogEntry[] = [
   {
     date: '2025-07-09',
     project: 'site',
-    title: 'vnclub.org launched',
+    title: 'vnclub.figamin.net launched',
     description: 'The site began as a resource collection: where to get VNs, discovery tools, and utilities.',
     links: [
       { label: 'Where to Get VNs', href: '/sources/' },

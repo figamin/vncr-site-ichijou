@@ -115,7 +115,7 @@ class WordOfTheDayView(BaseView):
 
         embed = discord.Embed(
             title=f"Word of the Day | {self.pick.date}",
-            url=f"https://vnclub.org/word-of-the-day?date={self.pick.date.isoformat()}",
+            url=f"https://vnclub.figamin.net/word-of-the-day?date={self.pick.date.isoformat()}",
             color=0x10B981,
         )
 

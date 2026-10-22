@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getBackendUrlOptional } from '@/lib/config';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vnclub.org';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vnclub.figamin.net';
 
 interface FeedNewsItem {
   id: string;

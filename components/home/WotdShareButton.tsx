@@ -23,7 +23,7 @@ function buildShareText(data: WordOfTheDayData): string {
 }
 
 function getShareUrl(date: string): string {
-  return `https://vnclub.org/word-of-the-day?date=${date}`;
+  return `https://vnclub.figamin.net/word-of-the-day?date=${date}`;
 }
 
 export function WotdShareButton({ data }: WotdShareButtonProps) {

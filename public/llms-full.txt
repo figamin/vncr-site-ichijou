@@ -20,141 +20,141 @@ The recommended learning path: learn kana → set up Textractor + JL → start r
 ## Guides
 
 ### Guides Index
-URL: https://vnclub.org/guides/
+URL: https://vnclub.figamin.net/guides/
 The hub every guide is reached from, grouped by what it sets up: getting the text out of the game, dictionaries and vocabulary, running visual novels anywhere, picture quality, and finding and tracking what you read.
 
 ### Learning Japanese with Visual Novels (Main Guide)
-URL: https://vnclub.org/guide/
+URL: https://vnclub.figamin.net/guide/
 The comprehensive beginner's guide. Covers learning kana (hiragana and katakana), setting up Textractor for text hooking, configuring JL as a popup dictionary, creating Anki flashcards from VN text, and developing an immersion-based study routine. This is the recommended starting point for anyone new to reading Japanese visual novels.
 
 ### Textractor Setup Guide
-URL: https://vnclub.org/textractor-guide/
+URL: https://vnclub.figamin.net/textractor-guide/
 Detailed setup guide for Textractor, the primary text hooking tool for Windows visual novels. Covers installation, attaching to VN processes, selecting the correct text thread, WebSocket extension setup for browser-based dictionary lookups, regex pattern configuration for cleaning extracted text, and troubleshooting common issues.
 
 ### JL Setup Guide
-URL: https://vnclub.org/jl-guide/
+URL: https://vnclub.figamin.net/jl-guide/
 Setup guide for JL (Japanese Learner), a popup dictionary application designed for visual novel reading. Features include instant word lookups, pitch accent display, word frequency information, Anki mining integration, and customizable appearance. Receives text from Textractor via clipboard or WebSocket.
 
 ### Yomitan Setup Guide
-URL: https://vnclub.org/yomitan-guide/
+URL: https://vnclub.figamin.net/yomitan-guide/
 Setup guide for Yomitan, a browser extension that provides popup Japanese dictionary lookups. Used with texthooker web pages to look up words while reading VNs. Covers dictionary installation, Anki integration for mining, and customization.
 
 ### Anki Setup Guide
-URL: https://vnclub.org/anki-guide/
+URL: https://vnclub.figamin.net/anki-guide/
 Comprehensive Anki configuration guide for Japanese learners. Covers FSRS (Free Spaced Repetition Scheduler) setup, optimal scheduling parameters, recommended add-ons for Japanese learning, card template design, and best practices for vocabulary retention through VN mining.
 
 ### Useful Tools
-URL: https://vnclub.org/tools/
+URL: https://vnclub.figamin.net/tools/
 Curated collection of tools and utilities that enhance the visual novel reading experience. Includes text extraction tools, dictionary applications, game compatibility layers, upscalers, and productivity tools.
 
 ### VN Recommendations & Discovery
-URL: https://vnclub.org/find/
+URL: https://vnclub.figamin.net/find/
 Guide to finding visual novels appropriate for your Japanese reading level. Covers VNDB difficulty ratings, community recommendation lists, curated beginner VN picks, and strategies for discovering new titles.
 
 ### Where to Get Japanese Visual Novels
-URL: https://vnclub.org/sources/
+URL: https://vnclub.figamin.net/sources/
 Guide to purchasing and downloading untranslated Japanese visual novels. Covers legitimate sources including DLsite, DMM, Steam (Japanese releases), and physical retailers. Explains purchasing with non-Japanese payment methods.
 
 ### Agent Text Hooker Guide
-URL: https://vnclub.org/agent-guide/
+URL: https://vnclub.figamin.net/agent-guide/
 Setup guide for Agent, an alternative text hooking tool that uses scripts for text extraction. Useful for games where Textractor fails, including some emulated games and titles with non-standard text rendering.
 
 ### OwOCR Guide
-URL: https://vnclub.org/owocr-guide/
+URL: https://vnclub.figamin.net/owocr-guide/
 Setup guide for OwOCR, an optical character recognition tool for extracting Japanese text from images. Essential for untexthookable VNs, console games played via emulator, and any situation where text is rendered as images rather than selectable text. Integrates with JL for dictionary lookups.
 
 ### Meikipop Guide
-URL: https://vnclub.org/meikipop-guide/
+URL: https://vnclub.figamin.net/meikipop-guide/
 Setup guide for Meikipop, an OCR-based popup dictionary that provides instant Japanese lookups for any text displayed on screen. Works with any application by performing OCR on the screen region under the cursor.
 
 ### Bottles Guide (Linux)
-URL: https://vnclub.org/bottles-guide/
+URL: https://vnclub.figamin.net/bottles-guide/
 Guide to playing Japanese visual novels on Linux using Bottles (Wine wrapper). Covers creating Wine prefixes, configuring Japanese locale settings, installing VNs, and running Textractor for text hooking on Linux.
 
 ### GameHub Lite Guide (Android)
-URL: https://vnclub.org/gamehub-lite-guide/
+URL: https://vnclub.figamin.net/gamehub-lite-guide/
 Setup guide for GameHub Lite, an application for running Windows visual novels and games on Android devices.
 
 ### Kirikiroid2 Guide (Android)
-URL: https://vnclub.org/kirikiroid-guide/
+URL: https://vnclub.figamin.net/kirikiroid-guide/
 Setup guide for Kirikiroid2, which allows playing Kirikiri engine visual novels natively on Android without Windows emulation. Covers extracting game files and configuring the app.
 
 ### Neko Project II Guide (PC-98)
-URL: https://vnclub.org/np2-guide/
+URL: https://vnclub.figamin.net/np2-guide/
 Emulator setup guide for playing classic PC-98 visual novels. Covers NP21W installation, Japanese font configuration, disk image mounting, and text hooking retro VNs for Japanese learning.
 
 ### Magpie Guide
-URL: https://vnclub.org/magpie-guide/
+URL: https://vnclub.figamin.net/magpie-guide/
 Setup guide for Magpie, a window upscaling tool for visual novels. Upscales low-resolution VNs using advanced algorithms including Anime4K, AMD FSR, CuNNy, and CRT shaders for crisp display on modern monitors.
 
 ### ShaderGlass Guide
-URL: https://vnclub.org/shaderglass-guide/
+URL: https://vnclub.figamin.net/shaderglass-guide/
 Setup guide for ShaderGlass, a transparent overlay tool that applies CRT shaders, upscaling filters, and retro visual effects to VNs and games without modifying the original application.
 
 ### JDownloader Guide
-URL: https://vnclub.org/jdownloader-guide/
+URL: https://vnclub.figamin.net/jdownloader-guide/
 Setup guide for JDownloader, a download manager for downloading visual novels from direct download sites. Covers handling split archives, automatic extraction, browser extension integration, and premium account usage.
 
 ### VNTimeTracker Guide
-URL: https://vnclub.org/timetracker-guide/
+URL: https://vnclub.figamin.net/timetracker-guide/
 Setup guide for VNTimeTracker, a tool for tracking time spent reading visual novels. Monitors active reading sessions and displays statistics about your Japanese learning progress.
 
 ## Site Features
 
 ### Browse VNs
-URL: https://vnclub.org/browse/
+URL: https://vnclub.figamin.net/browse/
 Search and filter the VNDB visual novel database. Features include full-text search, tag filtering, sorting by rating/popularity/release date, difficulty level indicators, and detailed VN information pages with character data, screenshots, and related titles. Data is updated daily from VNDB data dumps.
 
 ### Upcoming Releases
-URL: https://vnclub.org/news/upcoming/
+URL: https://vnclub.figamin.net/news/upcoming/
 Every visual novel in the catalogue whose release date is still ahead, grouped by month with Japanese releases first. Each entry carries the cover, the developer, the platforms and how precisely the date is known, since an announced title often has only a month or a year attached to it.
 
 ### VN Detail Pages
-URL pattern: https://vnclub.org/vn/{vndb_id}/
+URL pattern: https://vnclub.figamin.net/vn/{vndb_id}/
 Individual pages for each visual novel in the database. Include title (Japanese and romaji), description, cover image, release dates, developer info, tags, characters, aggregate ratings, and related VNs. Over 50,000 VNs indexed.
 
 ### Character Pages
-URL pattern: https://vnclub.org/character/{character_id}/
+URL pattern: https://vnclub.figamin.net/character/{character_id}/
 Individual pages for visual novel characters. Include character name, image, traits, associated VNs, voice actors, and physical attributes.
 
 ### VN Recommendations
-URL: https://vnclub.org/recommendations/
+URL: https://vnclub.figamin.net/recommendations/
 Ranks unread titles against your own VNDB ratings, which are read from a VNDB username rather than entered on the site, so the list behind that username has to be public. One ranking per signal (tags, premise, staff, studios, voice actors, character traits, and what readers with similar taste went on to read) plus a combined list, each title carrying the evidence for the match and the rating the signals expect you to give it.
 
 ### Stats & Rankings
-URL: https://vnclub.org/stats/
+URL: https://vnclub.figamin.net/stats/
 Visual novel database statistics and rankings. Browse top-rated VNs, popular tags, prolific staff members, voice actors (seiyuu), and production companies. Each entity has its own detail page with associated works.
 
 Sub-pages:
-- Tag pages: https://vnclub.org/stats/tag/{tag_id}/
-- Staff pages: https://vnclub.org/stats/staff/{staff_id}/
-- Seiyuu pages: https://vnclub.org/stats/seiyuu/{staff_id}/
-- Producer pages: https://vnclub.org/stats/producer/{producer_id}/
-- Trait pages: https://vnclub.org/stats/trait/{trait_id}/
+- Tag pages: https://vnclub.figamin.net/stats/tag/{tag_id}/
+- Staff pages: https://vnclub.figamin.net/stats/staff/{staff_id}/
+- Seiyuu pages: https://vnclub.figamin.net/stats/seiyuu/{staff_id}/
+- Producer pages: https://vnclub.figamin.net/stats/producer/{producer_id}/
+- Trait pages: https://vnclub.figamin.net/stats/trait/{trait_id}/
 
 ### VN News
-URL: https://vnclub.org/news/all/
+URL: https://vnclub.figamin.net/news/all/
 Aggregated Japanese visual novel news from multiple sources: VNDB (newly added titles and releases), Twitter/X posts from VN developers, RSS feeds from VN news sites, and community announcements. Updated daily. Available as RSS feed at /feed.xml.
 
 ### Kana Quiz
-URL: https://vnclub.org/quiz/
+URL: https://vnclub.figamin.net/quiz/
 Hiragana and katakana recognition drill: a kana is shown and you type its romaji. Rows are selectable, combination kana are optional, and a running score and streak are kept.
 
 ### Word of the Day
-URL: https://vnclub.org/word-of-the-day/
+URL: https://vnclub.figamin.net/word-of-the-day/
 A Japanese word each day with its readings, pitch accent, conjugation table where the part of speech has one, and example sentences taken from real visual novels rather than written for a textbook. Earlier days stay reachable from the page.
 
 ## Community
 
 ### Join Discord
-URL: https://vnclub.org/join/
+URL: https://vnclub.figamin.net/join/
 The VN Club Resurrection Discord server is a community of Japanese learners who read visual novels. Members share reading progress, help with tool setup, discuss VNs, and recommend titles for different skill levels.
 
 Discord invite: https://discord.gg/Ze7dYKVTHf
 
 ### Past Club Picks
-URL: https://vnclub.org/events/history/
-Everything the club has picked together, newest first: the monthly and seasonal picks, Movie Night, and the weekly roudoku sessions, where the club reads one very short title aloud in a single sitting. The calendar of what is coming up is at https://vnclub.org/events/.
+URL: https://vnclub.figamin.net/events/history/
+Everything the club has picked together, newest first: the monthly and seasonal picks, Movie Night, and the weekly roudoku sessions, where the club reads one very short title aloud in a single sitting. The calendar of what is coming up is at https://vnclub.figamin.net/events/.
 
 ## Technical Details
 
@@ -162,5 +162,5 @@ Everything the club has picked together, newest first: the monthly and seasonal 
 - VNDB data updated daily from official data dumps (not the API)
 - Over 50,000 visual novels indexed with characters, tags, staff, and release data
 - Open source: https://github.com/drinosaret/vn-club-resources
-- RSS feed: https://vnclub.org/feed.xml
-- Sitemap: https://vnclub.org/sitemap.xml
+- RSS feed: https://vnclub.figamin.net/feed.xml
+- Sitemap: https://vnclub.figamin.net/sitemap.xml

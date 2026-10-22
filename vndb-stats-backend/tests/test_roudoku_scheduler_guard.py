@@ -2,7 +2,7 @@
 
 Weekly Roudoku ships with a default weekday (Movie Night does not), so without
 an explicit guard a single member nomination on a fresh install would arm a
-session and let the deadline auto-pick publish a VN to the PUBLIC vnclub.org
+session and let the deadline auto-pick publish a VN to the PUBLIC vnclub.figamin.net
 calendar with no channel, no announcement and no admin involvement.
 """
 

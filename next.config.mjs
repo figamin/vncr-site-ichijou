@@ -58,8 +58,8 @@ const clientBackendBase =
 
 const connectSrc = [
   "'self'",
-  'https://vnclub.org',
-  'https://api.vnclub.org',
+  'https://vnclub.figamin.net',
+  'https://api.vnclub.figamin.net',
   ...(process.env.NEXT_PUBLIC_UMAMI_URL ? [process.env.NEXT_PUBLIC_UMAMI_URL] : []),
   ...(publicBackendUrl ? [publicBackendUrl] : []),
   ...(publicApiUrl ? [publicApiUrl] : []),
@@ -120,7 +120,7 @@ const nextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com${process.env.NEXT_PUBLIC_UMAMI_URL ? ' ' + process.env.NEXT_PUBLIC_UMAMI_URL : ''}`,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://t.vndb.org https://image.tmdb.org https://pbs.twimg.com https://video.twimg.com https://ton.twimg.com https://abs.twimg.com https://store.steampowered.com https://cdn.akamai.steamstatic.com https://icons.duckduckgo.com https://vnclub.org",
+              "img-src 'self' data: blob: https://t.vndb.org https://image.tmdb.org https://pbs.twimg.com https://video.twimg.com https://ton.twimg.com https://abs.twimg.com https://store.steampowered.com https://cdn.akamai.steamstatic.com https://icons.duckduckgo.com https://vnclub.figamin.net",
               "font-src 'self'",
               `connect-src ${connectSrc}`,
               "frame-src https://challenges.cloudflare.com",
@@ -196,7 +196,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'vnclub.org',
+        hostname: 'vnclub.figamin.net',
         pathname: '/assets/**',
       },
       {

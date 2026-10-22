@@ -22,7 +22,7 @@ class BotSettings:
         # placeholder) as unset: Discord requires absolute http(s) URLs for
         # link buttons, so frontend_url must never be "".
         frontend_url = os.environ.get("FRONTEND_URL", "").strip().rstrip("/")
-        self.frontend_url: str = frontend_url or "https://vnclub.org"
+        self.frontend_url: str = frontend_url or "https://vnclub.figamin.net"
         self.blacklist_refresh_secret: str = os.environ.get("BLACKLIST_REFRESH_SECRET", "")
 
 

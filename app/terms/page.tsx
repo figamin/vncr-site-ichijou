@@ -41,7 +41,7 @@ export default function TermsPage() {
 
         <div className="prose op-doc mt-8">
           <p>
-            VN Club (vnclub.org) is a free, open source site about Japanese visual novels. By
+            VN Club (vnclub.figamin.net) is a free, open source site about Japanese visual novels. By
             using it, you agree to these terms.
           </p>
 
@@ -143,7 +143,7 @@ export default function TermsPage() {
           <p>
             To report something on VN Club, whether it infringes your copyright, is illegal, or is a
             news item you want taken down, email{' '}
-            <a href="mailto:contact@vnclub.org">contact@vnclub.org</a> with a link to where it is on
+            <a href="mailto:contact@vnclub.figamin.net">contact@vnclub.figamin.net</a> with a link to where it is on
             the site and what the problem is. A copyright report should also name the work and say
             that you own it or act for the owner.
           </p>

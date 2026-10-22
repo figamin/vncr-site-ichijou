@@ -33,7 +33,7 @@ _TCO = re.compile(r"https?://t\.co/\S+")
 # own; a tag or a name addressed to someone is not words of its own.
 CREATOR_MIN_CHARS = 40
 _TAG_OR_MENTION = re.compile(r"[@#＠＃][^\s#＃@＠]+")
-USER_AGENT = "VN-Club-Resources/1.0 (news aggregator; +https://vnclub.org)"
+USER_AGENT = "VN-Club-Resources/1.0 (news aggregator; +https://vnclub.figamin.net)"
 
 
 def _expanded_text(status: dict[str, Any]) -> tuple[str, list[str]]:

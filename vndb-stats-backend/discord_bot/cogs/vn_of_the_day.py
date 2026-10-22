@@ -100,7 +100,7 @@ class VNOfTheDayView(BaseView):
 
         embed = discord.Embed(
             title=f"VN of the Day — {self.pick.date}",
-            url=f"https://vnclub.org/vn/{numeric_id}/",
+            url=f"https://vnclub.figamin.net/vn/{numeric_id}/",
             color=0x7C3AED,
         )
 

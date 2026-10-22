@@ -65,7 +65,7 @@ const websiteSchema = {
   '@type': 'WebSite',
   name: 'VN Club',
   alternateName: ['Visual Novel Club Resources', 'VNClub'],
-  url: 'https://vnclub.org',
+  url: 'https://vnclub.figamin.net',
   description: 'The hub for people who read Japanese visual novels in the original, untranslated form. What is being read this week, where it ranks, what is coming next, and the club reading it.',
   inLanguage: ['en', 'ja'],
   isAccessibleForFree: true,
@@ -94,7 +94,7 @@ const websiteSchema = {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: 'https://vnclub.org/browse/?q={search_term_string}',
+      urlTemplate: 'https://vnclub.figamin.net/browse/?q={search_term_string}',
     },
     'query-input': 'required name=search_term_string',
   },

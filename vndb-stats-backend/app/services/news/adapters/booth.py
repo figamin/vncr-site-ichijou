@@ -39,7 +39,7 @@ MAX_ITEMS = 30
 PUBLISHED_WINDOW = timedelta(days=7)
 REQUEST_GAP = 2
 NSFW_COVER = 1.5
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 
 # Wording that marks a novel or adventure work in the store's own tags and copy.
 NOVEL_WORDS = re.compile(r"ノベル|ADV|アドベンチャー|ビジュアルノベル|恋愛|乙女ゲーム|BL")

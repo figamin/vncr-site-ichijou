@@ -156,10 +156,10 @@ def _google_news(query: str) -> str:
 
 # Boards in this family refuse a browser or library client and answer only a
 # client-protocol name; the name is the protocol identifier, not a disguise.
-BOARD_HEADERS = {"User-Agent": "Monazilla/1.00 (vnclub-news; +https://vnclub.org)"}
+BOARD_HEADERS = {"User-Agent": "Monazilla/1.00 (vnclub-news; +https://vnclub.figamin.net)"}
 # The forum's feeds refuse browser strings from datacenter addresses and ask for a
 # descriptive client name instead.
-REDDIT_HEADERS = {"User-Agent": "vnclub-news/1.0 (+https://vnclub.org/news/)"}
+REDDIT_HEADERS = {"User-Agent": "vnclub-news/1.0 (+https://vnclub.figamin.net/news/)"}
 # A thread asking for help or a recommendation is chatter rather than news of a work.
 REDDIT_TITLE_EXCLUDE = r"(?i)^(how (do|can) i|how to|help\b|question\b|does anyone|is there a way|any (good|recommend))|\brec(c|s|ommend)"
 # A few outlets answer only a browser client name and refuse every other string.

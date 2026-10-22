@@ -237,7 +237,7 @@ class ChannelTarget:
 class MirrorConfig:
     """Everything the planner needs that does not come from the calendar."""
 
-    calendar_url: str = "https://vnclub.org"
+    calendar_url: str = "https://vnclub.figamin.net"
     targets: dict[str, ChannelTarget] = field(default_factory=dict)
     show_times: dict[str, str] = field(default_factory=dict)
     # The showtime the club has actually set for the next session of a type,

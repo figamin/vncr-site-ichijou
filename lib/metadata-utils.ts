@@ -19,7 +19,7 @@ export function safeJsonLdStringify(data: unknown): string {
 }
 
 export const SITE_NAME = 'VN Club';
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vnclub.org';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vnclub.figamin.net';
 export const DEFAULT_OG_IMAGE = '/assets/hikaru-icon2.webp';
 
 export interface MetadataInput {

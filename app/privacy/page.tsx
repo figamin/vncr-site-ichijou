@@ -40,7 +40,7 @@ export default function PrivacyPage() {
 
         <div className="prose op-doc mt-8">
           <p>
-            VN Club (vnclub.org) is a free, open source site about Japanese visual novels. All of it
+            VN Club (vnclub.figamin.net) is a free, open source site about Japanese visual novels. All of it
             works without an account, and it is built to need as little information about you as
             possible.
           </p>
@@ -156,7 +156,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             You can ask what we hold about you, or ask us to correct or delete it, by emailing{' '}
-            <a href="mailto:contact@vnclub.org">contact@vnclub.org</a>. You also have the right to
+            <a href="mailto:contact@vnclub.figamin.net">contact@vnclub.figamin.net</a>. You also have the right to
             complain to a data protection authority; in the Netherlands that is the{' '}
             <a
               href="https://autoriteitpersoonsgegevens.nl"
@@ -174,7 +174,7 @@ export default function PrivacyPage() {
           <h2>Contact</h2>
           <p>
             Questions? Email us at{' '}
-            <a href="mailto:contact@vnclub.org">contact@vnclub.org</a>, find us on{' '}
+            <a href="mailto:contact@vnclub.figamin.net">contact@vnclub.figamin.net</a>, find us on{' '}
             <a
               href="https://discord.gg/Ze7dYKVTHf"
               target="_blank"

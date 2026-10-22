@@ -3,7 +3,7 @@ import { ns } from "@/lib/i18n/translations/news";
 import { SECTIONS, fetchSources, type NewsSourceEntry } from "@/lib/news";
 
 // The address the site's footer already publishes for anything about the site.
-const CONTACT = "contact@vnclub.org";
+const CONTACT = "contact@vnclub.figamin.net";
 
 const KIND_KEYS = {
   feed: "sources.kind.feed",

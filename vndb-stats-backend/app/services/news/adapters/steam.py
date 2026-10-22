@@ -28,7 +28,7 @@ SEARCH_URL = (
 QUERIES = {"released": "&sort_by=Released_DESC", "sale": "&specials=1"}
 RELEASED_WINDOW = timedelta(days=7)
 NSFW_COVER = 1.5
-USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.org)"
+USER_AGENT = "Mozilla/5.0 (compatible; VN-Club-Resources/1.0; +https://vnclub.figamin.net)"
 
 _ROW = re.compile(r'<a\s[^>]*data-ds-appid="(\d+)"[^>]*>(.*?)</a>', re.S)
 _TITLE = re.compile(r'<span class="title">(.*?)</span>', re.S)

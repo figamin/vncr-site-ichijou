@@ -2,7 +2,7 @@
  * Shared sitemap constants used by both the sitemap generator and sitemap index route.
  */
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vnclub.org';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vnclub.figamin.net';
 export const URLS_PER_SITEMAP = 10000;
 
 // ID ranges for sitemap chunks: keeps generateSitemaps() and sitemap() in sync

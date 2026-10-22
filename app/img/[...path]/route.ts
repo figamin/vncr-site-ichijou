@@ -236,7 +236,7 @@ export async function GET(
         // Try to read cached WebP placeholder first
         let placeholderBuffer: Buffer;
         try {
-          placeholderBuffer = await fs.readFile(path.join(getPlaceholderDir(), 'placeholder.webp'));
+          placeholderBuffer = await fs.readFile(/*turbopackIgnore: true*/ path.join(getPlaceholderDir(), 'placeholder.webp'));
         } catch {
           // Generate WebP placeholder from SVG if it doesn't exist
           const svgBuffer = await fs.readFile(PLACEHOLDER_SVG_PATH);
@@ -303,7 +303,7 @@ export async function GET(
     let resizedIsStale = true;
 
     try {
-      resizedBuffer = await fs.readFile(cachePath);
+      resizedBuffer = await fs.readFile(/*turbopackIgnore: true*/ cachePath);
       resizedIsStale = await isCacheStale(cachePath);
     } catch {
       // Resized variant doesn't exist yet
@@ -326,10 +326,10 @@ export async function GET(
 
     // Try to get base image from cache (prefer WebP, fall back to JPG)
     try {
-      sourceBuffer = await fs.readFile(baseWebpPath);
+      sourceBuffer = await fs.readFile(/*turbopackIgnore: true*/ baseWebpPath);
     } catch {
       try {
-        sourceBuffer = await fs.readFile(baseJpgPath);
+        sourceBuffer = await fs.readFile(/*turbopackIgnore: true*/ baseJpgPath);
       } catch {
         // No cached base image
       }
@@ -398,7 +398,7 @@ export async function GET(
     } catch {
       // WebP doesn't exist, check for JPG source and convert
       try {
-        const jpgBuffer = await fs.readFile(baseJpgPath);
+        const jpgBuffer = await fs.readFile(/*turbopackIgnore: true*/ baseJpgPath);
         await ensureDir(cachePath);
         await sharp(jpgBuffer)
           .webp({ quality: WEBP_QUALITY })
@@ -414,7 +414,7 @@ export async function GET(
   let isStale = true;
 
   try {
-    cachedBuffer = await fs.readFile(cachePath);
+    cachedBuffer = await fs.readFile(/*turbopackIgnore: true*/ cachePath);
     isStale = await isCacheStale(cachePath);
   } catch {
     // Cache miss - file doesn't exist
@@ -441,7 +441,7 @@ export async function GET(
     let serveContentType = 'image/jpeg';
 
     try {
-      const webpBuffer = await fs.readFile(baseWebpPath);
+      const webpBuffer = await fs.readFile(/*turbopackIgnore: true*/ baseWebpPath);
       serveBuffer = webpBuffer;
       serveContentType = 'image/webp';
     } catch {

@@ -1,8 +1,8 @@
 # VN Club
 
-> **This project has shut down.** vnclub.org is offline and the code is no longer maintained. It stays here as open source for anyone who wants to read it, fork it or run their own copy.
+> **This project has moved.** vnclub.org is offline, and the codebase is now maintained by figamin. The site is run at vnclub.figamin.net for the time being.
 
-VN Club was a free, open source site about Japanese visual novels.
+VN Club is a free, open source site about Japanese visual novels.
 
 ## Features
 
@@ -22,7 +22,7 @@ VN Club was a free, open source site about Japanese visual novels.
 
 ## Running your own copy
 
-Issues and pull requests are no longer answered. Forks are welcome under the license below.
+Forks are welcome under the license below.
 
 Guide content lives in `content/guides/` as MDX files. The site is built with Next.js and Tailwind CSS, with a FastAPI + PostgreSQL backend that imports VNDB's public data dumps.
 
