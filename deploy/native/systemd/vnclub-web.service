@@ -1,0 +1,30 @@
+[Unit]
+Description=VN Club Next.js web
+Documentation=file:///srv/vnclub/deploy/native/SETUP.md
+After=network-online.target vnclub-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vnclub
+Group=vnclub
+WorkingDirectory=/srv/vnclub
+EnvironmentFile=/etc/vnclub/web.env
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/bun run start
+Restart=always
+RestartSec=3
+UMask=0027
+MemoryHigh=640M
+MemoryMax=768M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# Next writes its runtime cache under .next; the image route writes to public.
+ReadWritePaths=/srv/vnclub/.next /srv/vnclub/public
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

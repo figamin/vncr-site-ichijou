@@ -1,0 +1,93 @@
+# =============================================================================
+# VN Club Production - Lean core override
+# =============================================================================
+#
+# For a 2-4 GiB host that also runs other services. It keeps only:
+#   db, redis, api, web
+#
+# It drops the always-on worker, Discord bot and Umami. Start only the core:
+#
+#   docker compose \
+#     -f docker-compose.prod.yml \
+#     -f docker-compose.lean.yml \
+#     --env-file deploy/.env.prod \
+#     up -d db redis api web
+#
+# Then stop anything left from a previous full-stack run:
+#
+#   docker compose -f docker-compose.prod.yml --env-file deploy/.env.prod \
+#     stop worker discord-bot umami umami-db
+#
+# The worker is not optional for imports, similarity recomputes or leaderboard
+# refreshes. Run those on a temporary larger host, or copy an already-built
+# database and image cache to this host. The site serves the data that is
+# already in Postgres/Redis; it does not generate it here.
+#
+# Memory budget at idle is roughly:
+#   db 1G, api 768M, web 768M, redis 256M
+# The limits are ceilings; actual use is lower. Postgres is capped at 1G and
+# 50 connections so it cannot take the whole machine.
+# =============================================================================
+
+services:
+  db:
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - max_connections=50
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - effective_cache_size=1GB
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  redis:
+    command: >-
+      redis-server --appendonly yes --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in deploy/.env.prod}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  api:
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8000'
+      - --workers
+      - '1'
+      - --proxy-headers
+      - --forwarded-allow-ips
+      - '*'
+      - --no-access-log
+    environment:
+      - DATABASE_POOL_SIZE=10
+      - DATABASE_MAX_OVERFLOW=10
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+
+  web:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M

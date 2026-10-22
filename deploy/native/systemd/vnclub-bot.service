@@ -1,0 +1,30 @@
+[Unit]
+Description=VN Club Discord bot
+Documentation=file:///srv/vnclub/deploy/native/SETUP.md
+After=network-online.target vnclub-api.service postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vnclub
+Group=vnclub
+WorkingDirectory=/srv/vnclub/vndb-stats-backend
+EnvironmentFile=/etc/vnclub/api.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PATH=/srv/vnclub/vndb-stats-backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/srv/vnclub/vndb-stats-backend/.venv/bin/python scripts/run_bot.py
+Restart=always
+RestartSec=5
+UMask=0027
+MemoryHigh=320M
+MemoryMax=384M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/vnclub/vndb-stats-backend/logs /srv/vnclub/dumps /srv/vnclub/public/vndb-images
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

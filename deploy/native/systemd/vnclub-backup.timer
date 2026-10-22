@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily VN Club PostgreSQL backup
+Documentation=file:///srv/vnclub/deploy/native/SETUP.md
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

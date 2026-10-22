@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily VN Club heavy worker
+Documentation=file:///srv/vnclub/deploy/native/SETUP.md
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

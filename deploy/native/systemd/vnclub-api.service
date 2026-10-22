@@ -1,0 +1,35 @@
+[Unit]
+Description=VN Club FastAPI
+Documentation=file:///srv/vnclub/deploy/native/SETUP.md
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+Requires=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=vnclub
+Group=vnclub
+WorkingDirectory=/srv/vnclub/vndb-stats-backend
+EnvironmentFile=/etc/vnclub/api.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PATH=/srv/vnclub/vndb-stats-backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/srv/vnclub/deploy/native/scripts/prestart.sh
+ExecStart=/srv/vnclub/vndb-stats-backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-access-log
+Restart=always
+RestartSec=3
+# First start may run schema setup and data migrations on a multi-GiB DB.
+TimeoutStartSec=600
+UMask=0027
+MemoryHigh=640M
+MemoryMax=768M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# The backend writes dump files, logs, and on-demand cover images here.
+ReadWritePaths=/srv/vnclub/dumps /srv/vnclub/vndb-stats-backend/logs /srv/vnclub/public/vndb-images
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

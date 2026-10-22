@@ -290,7 +290,8 @@ services:
 
   # Worker for scheduled imports and heavy computation (similarity matrices, model training).
   # Memory limit set to 8GB: similarity computation needs ~6GB peak for loading 60K tag vectors.
-  # CPU capped at 3 cores: prevents import/ML jobs from starving live services on a 6-core VPS.
+  # CPU is capped below the host's core count so imports/ML jobs cannot starve live
+  # services. The default 1.5 fits a 2-core VPS; set WORKER_CPUS=3 on a 6-core host.
   worker:
     build:
       context: ./vndb-stats-backend
@@ -307,7 +308,7 @@ services:
         # a real margin. Sizing it below the peak turns a working nightly job into one
         # that is reaped every run.
         limits:
-          cpus: '3'
+          cpus: '${WORKER_CPUS:-1.5}'
           memory: 8G
     environment:
       - DATABASE_URL=postgresql+asyncpg://vndb:${POSTGRES_PASSWORD:-}@db:5432/vndb_stats

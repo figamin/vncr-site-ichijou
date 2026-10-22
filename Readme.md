@@ -49,6 +49,9 @@ The frontend Dockerfile is Bun-only: `oven/bun:1.4.3-alpine` installs with
 `bun install --frozen-lockfile`, builds with `bun run build`, and runs the
 standalone server with `bun server.js`. Node.js and npm are not installed.
 
+For a Docker-free deployment on a small host, including systemd units and an
+SSH-driven remote heavy worker, see [`deploy/native/SETUP.md`](deploy/native/SETUP.md).
+
 ## Data Sources
 
 - [VNDB](https://vndb.org/) - Visual novel data, tags, characters, and cover images
