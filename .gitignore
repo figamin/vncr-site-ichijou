@@ -75,10 +75,11 @@ public/robots.txt
 # Tooling artifacts
 .playwright-mcp/
 
-# VNDB image cache (served via /img/ API route, don't commit)
+# VNDB image cache (served via /img/ API route or directly by Angie, don't commit)
 .cache/
 .cache-backup/
 public/cache/
+public/vndb-images/
 
 # Backend data (downloaded VNDB dumps, large files)
 vndb-stats-backend/data/

@@ -55,11 +55,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Create cache directory for VNDB images (mount as Docker volume for persistence)
-# Set VNDB_CACHE_DIR to keep image cache outside the app tree.
-# Docker-compose mounts a named volume here for persistence across deploys.
-ENV VNDB_CACHE_DIR=/data/vndb-cache
-RUN mkdir -p /data/vndb-cache && chown -R nextjs:nodejs /data/vndb-cache
+# VNDB images live inside the site's public directory so host Angie can serve
+# them directly. Docker-compose bind-mounts ./public/vndb-images here.
+# /app/public is writable so the image route can also cache placeholder.webp.
+ENV VNDB_CACHE_DIR=/app/public/vndb-images
+RUN mkdir -p /app/public/vndb-images && chown -R nextjs:nodejs /app/public
 
 USER nextjs
 

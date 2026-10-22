@@ -21,7 +21,8 @@ import {
 // Cache configuration
 //
 // Default: ~/.vnclub/vndb-cache (outside the project tree).
-// Override with VNDB_CACHE_DIR env var.
+// Override with VNDB_CACHE_DIR env var. Production sets it to
+// <project>/public/vndb-images so host Angie can serve the same files directly.
 //
 // IMPORTANT: The fallback uses os.homedir() instead of process.cwd() because
 // Turbopack statically traces path.join(process.cwd(), ...) and scans every

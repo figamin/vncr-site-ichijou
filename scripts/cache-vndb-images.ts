@@ -23,6 +23,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
+import { loadEnvConfig } from '@next/env';
+
+// Prebuild/sync scripts run outside Next, so load .env.local explicitly.
+// This is what makes VNDB_CACHE_DIR point at the site directory.
+loadEnvConfig(process.cwd());
 
 // Cache dir priority: VNDB_CACHE_DIR env > static export public/ > ~/.vnclub/vndb-cache
 function resolveCacheDir(): string {

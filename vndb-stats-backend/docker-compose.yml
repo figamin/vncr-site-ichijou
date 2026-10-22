@@ -179,7 +179,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://vndb:${POSTGRES_PASSWORD:-vndb_dev_password}@db:5432/vndb_stats
       - REDIS_URL=redis://redis:6379
       - PYTHONUNBUFFERED=1
-      - VNDB_CACHE_DIR=/data/vndb-cache
+      - VNDB_CACHE_DIR=/data/vndb-images
       # DEV_MODE is inherited from .env (DEV_MODE=true in dev, false in production)
       # In dev: automatic imports disabled, entrypoint password check skipped
       # In production: automatic daily updates at 4 AM UTC
@@ -210,7 +210,9 @@ services:
       # stays disabled.
       - ${HIKARU_DATA_DIR:-./hikaru-data}:/hikaru-data:ro
       # The nightly reconcile removes cached covers of entries VNDB has deleted.
-      - vndb-cache:/data/vndb-cache
+      # Use the same host directory Angie serves. Create it first:
+      #   mkdir -p ../public/vndb-images && chown -R 1000:1000 ../public/vndb-images
+      - ../public/vndb-images:/data/vndb-images
     entrypoint: ["/bin/bash", "/app/docker-entrypoint.sh"]
     command: ["python", "scripts/worker.py"]
     restart: unless-stopped
@@ -233,8 +235,6 @@ volumes:
   redisdata:
     driver: local
   dumps:
-    driver: local
-  vndb-cache:
     driver: local
   umami-pgdata:
     driver: local

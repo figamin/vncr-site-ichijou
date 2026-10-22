@@ -7,13 +7,17 @@ services:
         - NEXT_PUBLIC_VNDB_STATS_API=${NEXT_PUBLIC_VNDB_STATS_API}
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     ports:
-      - "3000:3000"
+      # Host Angie reaches the container on loopback.
+      - "127.0.0.1:3000:3000"
+    group_add:
+      # Host image directory is owned by 1000:1000; nextjs is 1001.
+      - "1000"
     environment:
       - NODE_ENV=production
-      - VNDB_CACHE_DIR=/data/vndb-cache
+      - VNDB_CACHE_DIR=/app/public/vndb-images
     volumes:
-      # Persist VNDB image cache across container restarts/rebuilds
-      - vndb-cache:/data/vndb-cache
+      # Site-owned image directory, also served by host Angie.
+      - ./public/vndb-images:/app/public/vndb-images
     restart: unless-stopped
     # Resource limits for DoS protection
     deploy:
@@ -30,7 +34,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-volumes:
-  vndb-cache:
-    driver: local

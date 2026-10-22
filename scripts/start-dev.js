@@ -15,6 +15,11 @@ const BACKEND_DIR = path.join(ROOT_DIR, 'vndb-stats-backend');
 const GUIDES_DIR = path.join(ROOT_DIR, 'content', 'guides');
 const SEARCH_INDEX_PATH = path.join(ROOT_DIR, 'public', 'search-index.json');
 const SEARCH_INDEX_SCRIPT = path.join(__dirname, 'generate-search-index.ts');
+const IMAGE_DIR = path.join(ROOT_DIR, 'public', 'vndb-images');
+
+// Next loads .env.local in its own child process, but this script needs the same
+// values (notably VNDB_CACHE_DIR) before it starts that child.
+require('@next/env').loadEnvConfig(ROOT_DIR);
 
 // Load backend .env file for Discord bot token check
 const backendEnvPath = path.join(BACKEND_DIR, '.env');
@@ -225,6 +230,14 @@ function startNextServer() {
 
   // The bot is a development convenience; production deployments run it separately.
   const bot = IS_PROD ? null : startDiscordBot();
+
+  // Keep runtime images inside the site tree so host Angie can serve them
+  // directly. `.env.local` can override this with VNDB_CACHE_DIR.
+  if (!process.env.VNDB_CACHE_DIR) {
+    process.env.VNDB_CACHE_DIR = IMAGE_DIR;
+  }
+  fs.mkdirSync(process.env.VNDB_CACHE_DIR, { recursive: true });
+  log(`Image directory: ${process.env.VNDB_CACHE_DIR}`);
 
   // Run Next directly via node, not through a shell. The cmd.exe a shell wraps it
   // in mangles Ctrl+C on Windows (closing the whole terminal); the bin as a plain

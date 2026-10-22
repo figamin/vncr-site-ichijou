@@ -8,6 +8,10 @@ node_modules
 out
 build
 
+# Runtime image directories (bind-mounted from the host, not baked in)
+public/vndb-images
+public/cache/vndb
+
 # Testing
 coverage
 

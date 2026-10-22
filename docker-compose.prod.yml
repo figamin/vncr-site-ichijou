@@ -2,16 +2,26 @@
 # VN Club Production - Full Stack
 # =============================================================================
 #
+# Edge: host Angie (not containerized). It proxies to 127.0.0.1:3000 and
+# serves /img/ directly from ./public/vndb-images.
+#
 # Usage:
 #   docker compose -f docker-compose.prod.yml --env-file deploy/.env.prod up -d --build
 #
 # First run:
 #   1. Copy deploy/.env.prod.example to deploy/.env.prod and fill in values
-#   2. Run the compose command above
-#   3. Wait for containers to start (backend runs migrations automatically)
-#   4. Run initial data import:
+#   2. Create the shared image directory:
+#      mkdir -p public/vndb-images
+#      sudo chown -R 1000:1000 public/vndb-images
+#   3. Bind-mount the same directory for host Angie:
+#      sudo mkdir -p /srv/vnclub
+#      sudo mount --bind "$PWD/public/vndb-images" /srv/vnclub/vndb-images
+#      # Add the bind mount to /etc/fstab if it should survive reboots.
+#   4. Run the compose command above
+#   5. Wait for containers to start (backend runs migrations automatically)
+#   6. Run initial data import:
 #      docker compose -f docker-compose.prod.yml exec api python scripts/initial_import.py
-#   5. Sync VNDB cover images (rsync + WebP conversion):
+#   7. Sync VNDB cover images (rsync + WebP conversion):
 #      docker compose -f docker-compose.prod.yml --profile tools run --rm sync
 #
 # Updates:
@@ -20,28 +30,7 @@
 # =============================================================================
 
 services:
-  # Nginx reverse proxy: the only service exposed to the internet
-  nginx:
-    image: nginx:1.27-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./deploy/nginx/ssl:/etc/nginx/ssl:ro
-      - vndb-cache:/data/vndb-cache:ro
-    depends_on:
-      web:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-      umami:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - vnclub
-
-  # Next.js frontend (standalone mode)
+  # Next.js frontend (standalone mode). Host Angie reaches it on loopback.
   web:
     build:
       context: .
@@ -53,14 +42,22 @@ services:
         NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
         # Baked at build time: the widget reads this from the client bundle.
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+    ports:
+      - "127.0.0.1:3000:3000"
+    # The image directory is owned by 1000:1000 on the host. The container's
+    # nextjs user is 1001, so add the host group to let it write new images.
+    group_add:
+      - "1000"
     environment:
       - NODE_ENV=production
       - BLACKLIST_REFRESH_SECRET=${BLACKLIST_REFRESH_SECRET:-}
       - NEXT_PUBLIC_VNDB_STATS_API=${NEXT_PUBLIC_VNDB_STATS_API:-}
       - API_URL_INTERNAL=http://api:8000
-      - VNDB_CACHE_DIR=/data/vndb-cache
+      - VNDB_CACHE_DIR=/app/public/vndb-images
     volumes:
-      - vndb-cache:/data/vndb-cache
+      # Site-owned image directory. Host Angie serves /img/ from the same
+      # host path via a bind mount at /srv/vnclub/vndb-images.
+      - ./public/vndb-images:/app/public/vndb-images
     deploy:
       resources:
         limits:
@@ -82,10 +79,10 @@ services:
       context: ./vndb-stats-backend
       dockerfile: Dockerfile
     entrypoint: ["/bin/bash", "/app/docker-entrypoint.sh"]
-    # --proxy-headers + --forwarded-allow-ips: trust nginx's forwarded client IP
-    # (only nginx reaches this port on the internal network) so per-IP rate limits
-    # key on the real client, not the nginx container IP. --no-access-log: nginx
-    # already logs every request that reaches this service.
+    # --proxy-headers + --forwarded-allow-ips: trust the reverse proxy's
+    # forwarded client IP (the web container on the internal network, or host
+    # Angie via 127.0.0.1:8000) so per-IP rate limits key on the real client.
+    # --no-access-log: the edge already logs every request that reaches this service.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "3", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://vndb:${POSTGRES_PASSWORD:-}@db:5432/vndb_stats
@@ -112,6 +109,9 @@ services:
       # carry the same figure as a freshly computed one.
       - REC_PREDICTED_RATING=1
       - PYTHONUNBUFFERED=1
+    ports:
+      # Host Angie can serve api.vnclub.figamin.net from this loopback port.
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -233,9 +233,10 @@ services:
     working_dir: /app
     volumes:
       - ./scripts:/app/scripts:ro
-      - vndb-cache:/data/vndb-cache
+      # Write into the same host directory Angie serves.
+      - ./public/vndb-images:/app/public/vndb-images
     environment:
-      - VNDB_CACHE_DIR=/data/vndb-cache
+      - VNDB_CACHE_DIR=/app/public/vndb-images
     profiles:
       - tools
     entrypoint:
@@ -244,13 +245,16 @@ services:
       - >-
         apk add --no-cache rsync > /dev/null 2>&1;
         npx tsx scripts/sync-vndb-covers.ts "$@";
-        chown -R 1001:1001 /data/vndb-cache
+        chown -R 1000:1000 /app/public/vndb-images
       - --
     command: []
 
   # Umami analytics
   umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
+    ports:
+      # Host Angie can serve analytics.vnclub.figamin.net from this loopback port.
+      - "127.0.0.1:3001:3000"
     environment:
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-}@umami-db:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET:-}
@@ -313,7 +317,7 @@ services:
       - VNDB_API_URL=https://api.vndb.org/kana
       - VNDB_API_TOKEN=${VNDB_API_TOKEN:-}
       - DISCORD_LOG_WEBHOOK_URL=${DISCORD_LOG_WEBHOOK_URL:-}
-      - VNDB_CACHE_DIR=/data/vndb-cache
+      - VNDB_CACHE_DIR=/data/vndb-images
       # hikaru -> calendar import source guild (VNCR). Defaults to DISCORD_GUILD_ID;
       # VNCR_GUILD_ID overrides only if the source guild differs.
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
@@ -336,7 +340,8 @@ services:
       # to ./hikaru-data, which leaves the import disabled.
       - ${HIKARU_DATA_DIR:-./hikaru-data}:/hikaru-data:ro
       # The nightly reconcile removes cached covers of entries VNDB has deleted.
-      - vndb-cache:/data/vndb-cache
+      # Same host directory Angie serves from.
+      - ./public/vndb-images:/data/vndb-images
     restart: unless-stopped
     networks:
       - vnclub
@@ -345,7 +350,6 @@ volumes:
   pgdata:
   redisdata:
   dumps:
-  vndb-cache:
   umami-pgdata:
 
 networks:
