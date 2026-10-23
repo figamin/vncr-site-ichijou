@@ -797,8 +797,8 @@ VNDB_CACHE_DIR=/srv/vnclub/public/vndb-images
 VNDB_API_TOKEN=...
 FRONTEND_URL=https://vnclub.example.com
 
-# 8 hours; keep this below vnclub-heavy.service TimeoutStartSec (12h).
-FULL_IMPORT_TIMEOUT=28800
+# 24 hours; keep this below vnclub-heavy.service TimeoutStartSec (26h).
+FULL_IMPORT_TIMEOUT=86400
 ```
 
 The `15432` and `16379` ports are **on the worker** and only exist while the
@@ -854,8 +854,8 @@ Available tasks:
 - `leaderboards` — leaderboard rebuild only
 
 The timer runs daily at 04:00 with up to 15 minutes of randomized delay.
-`FULL_IMPORT_TIMEOUT` defaults to 8 hours; the unit allows 12 hours. If you raise
-the Python timeout above 12 hours, raise `TimeoutStartSec` in
+`FULL_IMPORT_TIMEOUT` defaults to 24 hours; the unit allows 26 hours. If you
+raise the Python timeout above 26 hours, raise `TimeoutStartSec` in
 `vnclub-heavy.service` as well.
 
 ---

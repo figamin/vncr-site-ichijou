@@ -180,8 +180,8 @@ async def run_daily_update():
     settings = get_settings()
     start_time = time.time()
 
-    # Use config value or default to 8 hours
-    max_duration = getattr(settings, 'full_import_timeout', 28800)
+    # Use config value or default to 24 hours
+    max_duration = getattr(settings, 'full_import_timeout', 86400)
 
     logger.info("=" * 60)
     logger.info("STARTING DAILY VNDB DATA UPDATE (WORKER)")
