@@ -626,8 +626,14 @@ async def swap_similarity_tables():
             result = await db.execute(text(f"SELECT EXISTS (SELECT 1 FROM {table})"))
             has_data = result.scalar_one()
             if not has_data:
-                logger.error(f"ABORTING SWAP: {table} is empty — refusing to replace live data with nothing")
-                return
+                message = (
+                    f"ABORTING SWAP: {table} is empty — refusing to replace live data with nothing"
+                )
+                logger.error(message)
+                # Raise so callers do not report a successful recompute/import
+                # when the staging data was never produced (for example, an
+                # empty database or a failed Phase 3).
+                raise RuntimeError(message)
 
         # 1. Create indexes on staging BEFORE swap (live stays indexed throughout).
         # Drop stale _new indexes first — if a previous cleanup crashed, these names

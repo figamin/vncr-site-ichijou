@@ -180,8 +180,8 @@ async def run_daily_update():
     settings = get_settings()
     start_time = time.time()
 
-    # Use config value or default to 4 hours
-    max_duration = getattr(settings, 'full_import_timeout', 14400)
+    # Use config value or default to 8 hours
+    max_duration = getattr(settings, 'full_import_timeout', 28800)
 
     logger.info("=" * 60)
     logger.info("STARTING DAILY VNDB DATA UPDATE (WORKER)")
@@ -373,7 +373,9 @@ async def recompute_models_only():
     )
 
     start_time = time.time()
-    max_duration = 7200  # 2 hours
+    # Model recompute is a subset of the full import pipeline; use the same
+    # configurable budget so FULL_IMPORT_TIMEOUT also covers this path.
+    max_duration = get_settings().full_import_timeout
 
     logger.info("=" * 60)
     logger.info("RECOMPUTING MODELS (data already present)")

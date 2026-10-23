@@ -11,7 +11,8 @@ Group=vnclub
 Environment=HOME=/srv/vnclub
 EnvironmentFile=/etc/vnclub/heavy.env
 ExecStart=/srv/vnclub/deploy/native/scripts/run-heavy-remote.sh
-TimeoutStartSec=6h
+# The Python pipeline defaults to 8h (FULL_IMPORT_TIMEOUT); keep this above it.
+TimeoutStartSec=12h
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

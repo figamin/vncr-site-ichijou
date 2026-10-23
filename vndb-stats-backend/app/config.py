@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     # Timeouts (in seconds)
     vndb_pagination_timeout: int = 300  # 5 min for paginated user list fetching
     sse_connection_timeout: int = 3600  # 1 hour max SSE connection
-    full_import_timeout: int = 14400  # 4 hours max for entire import pipeline
+    full_import_timeout: int = 28800  # 8 hours max for entire import pipeline
     http_request_timeout: int = 30  # Default HTTP request timeout
 
     # Concurrency limits
