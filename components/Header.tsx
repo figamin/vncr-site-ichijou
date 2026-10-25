@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Fragment, useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeSelector } from './ThemeSelector';
 import { TitleLanguageToggle } from './TitleLanguageToggle';
 import SearchBar from './SearchBar';
 import { getHeaderNavigation } from '@/lib/navigation';
@@ -165,7 +165,7 @@ export default function Header() {
               <DiscordIcon className="w-5 h-5 text-[color:var(--nezu)] transition-colors hover:text-[#5865F2]" />
             </Link>
             <TitleLanguageToggle />
-            <ThemeToggle />
+            <ThemeSelector />
           </div>
 
           {/* Mobile Menu Button */}
@@ -178,7 +178,7 @@ export default function Header() {
               <DiscordIcon className="w-5 h-5 text-[color:var(--nezu)]" />
             </Link>
             <TitleLanguageToggle />
-            <ThemeToggle />
+            <ThemeSelector />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-1.5 rounded-xs hover:bg-[color:var(--surface-inset)]"

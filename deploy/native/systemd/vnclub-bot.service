@@ -12,6 +12,7 @@ WorkingDirectory=/srv/vnclub/vndb-stats-backend
 EnvironmentFile=/etc/vnclub/api.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=ICHIJOU_LOG_FILE=/srv/vnclub/vndb-stats-backend/logs/ichijou_bot.log
 Environment=PATH=/srv/vnclub/vndb-stats-backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/srv/vnclub/vndb-stats-backend/.venv/bin/python scripts/run_bot.py
 Restart=always

@@ -413,6 +413,20 @@ If you use Umami, export its `NEXT_PUBLIC_UMAMI_*` values and rebuild the
 frontend after editing `web.env`; they are baked into the client bundle. Umami
 itself is not part of the lean core.
 
+For the optional Discord bot, also set these in `api.env`:
+
+```dotenv
+DISCORD_BOT_TOKEN=...
+DISCORD_GUILD_ID=...
+DISCORD_ADMIN_USER_IDS=...
+TMDB_API_KEY=...
+DISCORD_LOG_WEBHOOK_URL=
+ICHIJOU_LOG_FILE=/srv/vnclub/vndb-stats-backend/logs/ichijou_bot.log
+```
+
+The native unit uses a writable log path. Without `ICHIJOU_LOG_FILE`, the bot
+tries `/app/logs/ichijou_bot.log`, which is read-only under the systemd sandbox.
+
 Lock down the files:
 
 ```bash

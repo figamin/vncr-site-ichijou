@@ -284,6 +284,55 @@ html.no-transitions *::after {
   --brand-primary-hover: #8DBEC5;
 }
 
+/* Classic purple. The indigo identity the site carried until the September 2026 redesign,
+   kept selectable now that the accent is teal. Only the accent family moves: grounds and
+   rules stay where they are, so the old palette sits on the current page rather than
+   dragging an old layout with it. */
+.theme-purple {
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  --ai: #4F46E5;
+  --ai-bright: #6366F1;
+  /* The amber that marks selection and hover is the other half of the current identity.
+     The classic palette turns it violet, the other half of the purple range the old site
+     used. It stops short of the full indigo so the dark type carried on those fills stays
+     readable. */
+  --kohaku: #8B5CF6;
+  --kohaku-text: #6D28D9;
+  --focus: #4F46E5;
+  --brand-primary: #4F46E5;
+  --brand-primary-hover: #4338CA;
+}
+
+/* On the panel the ground is dark, so both accents lighten to the weight the dark theme
+   used before. */
+.theme-purple .on-box {
+  --ai: #A5B4FC;
+  --ai-bright: #C7D2FE;
+  --kohaku: #A78BFA;
+  --kohaku-text: #C4B5FD;
+  --focus: #A5B4FC;
+}
+
+.dark.theme-purple {
+  --ai: #818CF8;
+  --ai-bright: #A5B4FC;
+  --kohaku: #A78BFA;
+  --kohaku-text: #C4B5FD;
+  --focus: #818CF8;
+  --brand-primary: #818CF8;
+  --brand-primary-hover: #A5B4FC;
+}
+
 html,
 body {
   color: var(--foreground);
@@ -7222,6 +7271,45 @@ a.nw-burst-link:hover .nw-burst-title { color: var(--ai); }
   border-radius: 2px;
 }
 
+/* The theme selector's list: right-aligned beneath the control so it cannot run off the
+   masthead at phone width. */
+.theme-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 60;
+  width: 14rem;
+  margin-top: 0.25rem;
+}
+
+/* A palette's colour in the selector. The values are fixed rather than tokenised: the
+   point of the mark is to show a palette other than the one currently applied. */
+.theme-swatch {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--rule);
+}
+
+.theme-swatch--current { background: #157A6E; }
+.dark .theme-swatch--current { background: #21C5B1; }
+.theme-swatch--classic { background: #4F46E5; }
+.dark .theme-swatch--classic { background: #818CF8; }
+
+/* Marks that the classic palette is on while the trigger still shows the light/dark choice. */
+.theme-dot {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.15rem;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 9999px;
+  background: #4F46E5;
+}
+
+.dark .theme-dot { background: #A5B4FC; }
+
 /* The name of a group, a column or a control. Mono, uppercase and small wherever a
    label stands apart from the thing it names. */
 .sw-plate {
@@ -9121,6 +9209,14 @@ a.nw-burst-link:hover .nw-burst-title { color: var(--ai); }
   height: 2px;
   background: var(--kohaku);
 }
+
+/* In the classic palette the masthead marks the current section in the accent, as it did
+   before the redesign, rather than in the amber the current palette uses. */
+.theme-purple .nav-link:hover,
+.theme-purple .nav-link:focus-visible,
+.theme-purple .nav-link--on { color: var(--ai); }
+
+.theme-purple .nav-link--on::after { background: var(--ai); }
 
 /* The dropdown under a masthead label. Square, ruled, and no float. */
 .nav-menu {
