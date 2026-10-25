@@ -57,6 +57,13 @@ export const PROJECT_META: Record<ChangelogProject, ProjectMeta> = {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    date: '2026-10-19',
+    project: 'site',
+    title: 'New management',
+    description:
+      'Drinos has stepped down as the club\'s owner, and now Lore has taken charge of the discord server, with Figamin running the website and the bots.',
+  },
+  {
     date: '2026-10-01',
     project: 'hikaru',
     title: 'Rating scales and VNDB linking',

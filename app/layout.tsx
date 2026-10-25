@@ -11,6 +11,7 @@ import { NavigationProgress } from "@/components/NavigationProgress";
 import { Providers } from "@/components/Providers";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
+import { SiteAnnouncement } from "@/components/SiteAnnouncement";
 import { analyticsGateScript } from "@/lib/analytics-gate";
 import { SITE_URL, safeJsonLdStringify } from "@/lib/metadata-utils";
 
@@ -201,6 +202,7 @@ export default function RootLayout({
             <div className="flex flex-col min-h-screen overflow-x-clip">
               <Header />
               <main className="grow pt-16 md:pt-[72px]">
+                <SiteAnnouncement />
                 {children}
               </main>
               <Footer />

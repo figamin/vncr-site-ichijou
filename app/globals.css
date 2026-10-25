@@ -7310,6 +7310,51 @@ a.nw-burst-link:hover .nw-burst-title { color: var(--ai); }
 
 .dark .theme-dot { background: #A5B4FC; }
 
+/* The sitewide notice carried under the masthead. It sits in the page flow, so it scrolls
+   away with the page instead of stacking another fixed bar over the content. The accent is
+   a rule rather than a fill: a notice is a line of type, not a button. */
+.site-announce {
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface-inset);
+}
+
+.site-announce-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+}
+
+.site-announce-mark {
+  width: 0.1875rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  background: var(--ai);
+}
+
+.site-announce-text {
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.site-announce-link {
+  color: var(--ai);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.site-announce-link:hover {
+  color: var(--brand-primary-hover);
+}
+
+.site-announce-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* The name of a group, a column or a control. Mono, uppercase and small wherever a
    label stands apart from the thing it names. */
 .sw-plate {

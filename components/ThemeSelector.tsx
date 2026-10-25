@@ -12,8 +12,8 @@ const THEMES: { value: Theme; label: string; icon: typeof Moon }[] = [
 ];
 
 const PALETTES: { value: Palette; label: string; note: string }[] = [
-  { value: 'current', label: 'Current', note: 'Teal and amber' },
-  { value: 'classic', label: 'Classic purple', note: 'The purple palette used before September' },
+  { value: 'current', label: 'Modern', note: 'Amber with teal logo' },
+  { value: 'classic', label: 'Drinos', note: 'The purple palette used before September' },
 ];
 
 export function ThemeSelector() {
