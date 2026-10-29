@@ -32,6 +32,12 @@ __pycache__/
 env/
 venv/
 .venv*/
+# uv-managed CPython for the native install (deploy/native/scripts)
+.uv/
+# Deployment templates live in deploy/native/env. The broad "env/" rule above
+# would otherwise hide the directory and prepare-app.sh would install nothing.
+!deploy/native/env/
+!deploy/native/env/*.env.example
 *.egg-info/
 .pytest_cache/
 pip-wheel-metadata/

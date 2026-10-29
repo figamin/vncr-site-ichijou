@@ -1,8 +1,14 @@
 # Native lean core
 
-For the complete two-host walkthrough, including the remote worker, start with
-[`SETUP.md`](SETUP.md). This file is the shorter reference for the layout and
-individual pieces.
+- **One arm64 Debian machine, no Docker:** follow
+  [`SINGLE_HOST_ARM64.md`](SINGLE_HOST_ARM64.md). The heavy job runs locally
+  through `vnclub-heavy.timer`.
+- **Two hosts (public core + heavy worker over SSH):** follow
+  [`SETUP.md`](SETUP.md).
+
+This file is the shorter reference for the layout and the individual pieces.
+Both guides install the same units and environment files; only the heavy job's
+location differs.
 
 This is the Docker-free deployment for a small host. It keeps only the services
 needed to serve the site:
@@ -19,7 +25,9 @@ its `NEXT_PUBLIC_UMAMI_*` values before building the frontend.
 
 The heavy worker runs on a faster remote machine over SSH. The remote worker
 connects back to this host's PostgreSQL and Redis through SSH remote forwards,
-so the database is never copied for a normal update.
+so the database is never copied for a normal update. On a single-machine
+install, set `HEAVY_MODE=local` in `/etc/vnclub/heavy.env` instead; see
+[`SINGLE_HOST_ARM64.md`](SINGLE_HOST_ARM64.md).
 
 This layout typically uses about 1.2–1.5 GiB of core memory; the systemd
 `MemoryMax` values are ceilings, not reservations. It avoids Docker images and
@@ -35,7 +43,7 @@ build cache entirely.
 /srv/vnclub/dumps                   VNDB dump storage
 /etc/vnclub/api.env                 FastAPI environment
 /etc/vnclub/web.env                 Next/Bun environment
-/etc/vnclub/heavy.env               local SSH/remote-worker settings
+/etc/vnclub/heavy.env               heavy task mode/target (local or SSH)
 /var/backups/vnclub                 PostgreSQL dumps
 ```
 
@@ -169,12 +177,12 @@ Set `requirepass` in `/etc/redis/vnclub.conf` to the same password used in
 ## 5. Python environment
 
 ```bash
-cd /srv/vnclub/vndb-stats-backend
-sudo -u vnclub uv python install 3.11
-sudo -u vnclub uv venv --python 3.11 .venv
-sudo -u vnclub uv pip install --python .venv/bin/python --require-hashes -r requirements.lock
-sudo -u vnclub uv pip install --python .venv/bin/python --no-deps -r requirements-vcs.txt
+sudo bash /srv/vnclub/deploy/native/scripts/install-python-deps.sh
 ```
+
+The script installs CPython 3.11 under `/srv/vnclub/.uv/python`, creates
+`vndb-stats-backend/.venv`, installs the hashed lock file, and verifies the
+imports. Running it again is safe and is how an existing venv is refreshed.
 
 ## 6. Frontend build
 
@@ -206,7 +214,7 @@ Fill in at least:
 - `VNDB_API_TOKEN`
 - `FRONTEND_URL`
 - `BLACKLIST_REFRESH_SECRET`
-- `HEAVY_SSH_HOST` and the remote settings in `heavy.env`
+- `HEAVY_MODE`, and `HEAVY_SSH_HOST` for a remote worker, in `heavy.env`
 
 ## 8. Migrate data from Docker
 
@@ -395,13 +403,7 @@ sudo chmod 600 /srv/vnclub/.ssh/authorized_keys
 # uv is the same installer as on the web host.
 curl -LsSf https://astral.sh/uv/install.sh | sudo env UV_INSTALL_DIR=/usr/local/bin sh
 
-cd /srv/vnclub/vndb-stats-backend
-sudo -u vnclub uv python install 3.11
-sudo -u vnclub uv venv --python 3.11 .venv
-sudo -u vnclub uv pip install --python .venv/bin/python \
-  --require-hashes -r requirements.lock
-sudo -u vnclub uv pip install --python .venv/bin/python \
-  --no-deps -r requirements-vcs.txt
+sudo bash /srv/vnclub/deploy/native/scripts/install-python-deps.sh
 
 sudo install -d -m 750 -o root -g vnclub /etc/vnclub
 sudo install -m 640 -o root -g vnclub \
@@ -430,18 +432,19 @@ inside SSH.
 
 ### 11.3 Configure the local worker settings
 
-On the web host, `/etc/vnclub/heavy.env` selects the SSH target and task:
+On the web host, `/etc/vnclub/heavy.env` selects the task and its target:
 
 ```text
+HEAVY_MODE=remote
 HEAVY_SSH_HOST=vnclub@heavy.example
 HEAVY_WORKDIR=/srv/vnclub/vndb-stats-backend
 HEAVY_PYTHON=.venv/bin/python
 HEAVY_TASK=daily
 ```
 
-The defaults from `deploy/native/env/heavy.env.example` already match the
-remote layout; only `HEAVY_SSH_HOST` normally needs editing. Keep the file
-mode `640 root:vnclub` so the heavy service can read it.
+The copied `heavy.env.example` starts with `HEAVY_MODE=local`; change it to
+`remote` for this layout and set `HEAVY_SSH_HOST`. Keep the file mode
+`640 root:vnclub` so the heavy service can read it.
 
 `run-heavy-remote.sh` opens remote forwards:
 

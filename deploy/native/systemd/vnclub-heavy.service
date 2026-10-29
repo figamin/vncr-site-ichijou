@@ -1,7 +1,7 @@
 [Unit]
-Description=VN Club heavy worker (remote over SSH)
-Documentation=file:///srv/vnclub/deploy/native/SETUP.md
-After=network-online.target
+Description=VN Club heavy worker (local or remote)
+Documentation=file:///srv/vnclub/deploy/native/SINGLE_HOST_ARM64.md
+After=network-online.target postgresql.service redis-server.service
 Wants=network-online.target
 
 [Service]
@@ -9,8 +9,16 @@ Type=oneshot
 User=vnclub
 Group=vnclub
 Environment=HOME=/srv/vnclub
-EnvironmentFile=/etc/vnclub/heavy.env
-ExecStart=/srv/vnclub/deploy/native/scripts/run-heavy-remote.sh
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PATH=/srv/vnclub/vndb-stats-backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+# api.env supplies DATABASE_URL/REDIS_URL for local mode; heavy.env supplies
+# HEAVY_TASK and either HEAVY_MODE=local or the remote SSH target. Both are
+# optional so a partially configured host reports a clear error from the
+# dispatcher instead of failing to start the unit.
+EnvironmentFile=-/etc/vnclub/api.env
+EnvironmentFile=-/etc/vnclub/heavy.env
+ExecStart=/srv/vnclub/deploy/native/scripts/run-heavy.sh
 # The Python pipeline defaults to 24h (FULL_IMPORT_TIMEOUT); keep this above it.
 TimeoutStartSec=26h
 Nice=10

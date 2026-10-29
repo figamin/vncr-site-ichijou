@@ -28,7 +28,9 @@ staff, or any bulk data. Use the local database via app/db/models.py instead.
 ============================================================================
 """
 
+import json
 from functools import lru_cache
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -168,6 +170,45 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v.strip() == "":
             return None
         return v
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v):
+        """Accept a JSON array or a plain comma-separated list.
+
+        docker-compose and .env files use the JSON form. systemd's
+        EnvironmentFile parser can strip the quotes inside a JSON literal, so
+        the native deployment writes ``CORS_ORIGINS=https://a,https://b`` and
+        relies on this branch. A value that looks like JSON but no longer
+        parses is also split, so a mangled environment file cannot stop the
+        API from starting.
+        """
+        if v is None or isinstance(v, list):
+            return v
+        if not isinstance(v, str):
+            return v
+
+        text = v.strip()
+        if not text:
+            return []
+
+        if text.startswith("["):
+            try:
+                parsed = json.loads(text)
+            except json.JSONDecodeError:
+                text = text[1:-1] if text.endswith("]") else text[1:]
+            else:
+                if not isinstance(parsed, list):
+                    raise ValueError(
+                        "CORS_ORIGINS must be a JSON array or a comma-separated list"
+                    )
+                return [str(item) for item in parsed]
+
+        return [
+            item.strip().strip("'\"")
+            for item in text.split(",")
+            if item.strip().strip("'\"")
+        ]
 
     @property
     def hikaru_source_guild_id(self) -> int | None:

@@ -16,6 +16,17 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# Both arm64 and x86-64 are supported; 32-bit hosts are not. The guide this
+# script accompanies targets a single arm64 Debian machine.
+ARCH=$(uname -m)
+case "$ARCH" in
+  aarch64|arm64|x86_64|amd64) ;;
+  *)
+    echo "Unsupported architecture: $ARCH (need aarch64/arm64 or x86_64)." >&2
+    exit 1
+    ;;
+esac
+
 # The installed systemd units hard-code /srv/vnclub. Keep APP_DIR in sync with
 # them rather than silently building a tree the units will never use.
 if [ "$APP_DIR" != "/srv/vnclub" ]; then
@@ -89,13 +100,9 @@ sudo -u vnclub bun install --frozen-lockfile
 sudo -u vnclub bun run build
 sudo -u vnclub mkdir -p public/vndb-images
 
-cd "$BACKEND_DIR"
-sudo -u vnclub uv python install 3.11
-sudo -u vnclub uv venv --python 3.11 .venv
-sudo -u vnclub uv pip install \
-  --python .venv/bin/python --require-hashes -r requirements.lock
-sudo -u vnclub uv pip install \
-  --python .venv/bin/python --no-deps -r requirements-vcs.txt
+# arm64 and x86-64 both resolve to prebuilt wheels for the backend pins. If a
+# package has to build from source, the script reports the toolchain needed.
+bash "$REPO_DIR/deploy/native/scripts/install-python-deps.sh"
 
 for f in "$REPO_DIR"/deploy/native/systemd/*.service \
          "$REPO_DIR"/deploy/native/systemd/*.timer; do
@@ -114,12 +121,16 @@ done
 
 cat <<EOF
 
-Prepared. Remaining manual steps:
-  1. Install PostgreSQL 15 and Redis (see deploy/native/SETUP.md).
+Prepared on $ARCH. Remaining manual steps:
+  1. Install PostgreSQL 15 and Redis (see deploy/native/SINGLE_HOST_ARM64.md
+     for a single host, or deploy/native/SETUP.md for the two-host layout).
   2. Edit /etc/vnclub/api.env, web.env and heavy.env.
   3. Create the vndb role/database and apply the pg_hba rule.
   4. Set the Redis requirepass and include /etc/redis/vnclub.conf.
-  5. Restore the database and image cache.
+  5. Restore a database dump, or run the first import through the heavy unit.
   6. Restart Angie so its worker picks up the vnclub supplementary group.
   7. systemctl enable --now vnclub-api.service vnclub-web.service
+
+The copied heavy.env defaults to HEAVY_MODE=local, so the nightly job runs in
+this host's venv. Set HEAVY_MODE=remote and HEAVY_SSH_HOST to use a worker.
 EOF

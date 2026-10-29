@@ -51,6 +51,8 @@ standalone server with `bun server.js`. Node.js and npm are not installed.
 
 For a Docker-free deployment on a small host, including systemd units and an
 SSH-driven remote heavy worker, see [`deploy/native/SETUP.md`](deploy/native/SETUP.md).
+For a single arm64 Debian machine with the import running locally, see
+[`deploy/native/SINGLE_HOST_ARM64.md`](deploy/native/SINGLE_HOST_ARM64.md).
 
 ## Data Sources
 

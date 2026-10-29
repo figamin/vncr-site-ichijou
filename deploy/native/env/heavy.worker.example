@@ -1,0 +1,27 @@
+# Heavy-worker environment for the *remote* machine in a two-host install.
+#
+# Installed on the worker as /etc/vnclub/heavy.env. The core host's SSH session
+# opens 15432 and 16379 on the worker loopback and forwards them to its own
+# PostgreSQL and Redis, so this file points at those tunnel ports.
+#
+# Note this file is different from the core host's heavy.env: this one supplies
+# the database, cache and storage settings; the core's copy only selects the
+# task and the SSH target.
+
+DATABASE_URL=postgresql+asyncpg://vndb:CHANGE_ME_DB_PASSWORD@127.0.0.1:15432/vndb_stats
+REDIS_URL=redis://:CHANGE_ME_REDIS_PASSWORD@127.0.0.1:16379/0
+
+DUMP_STORAGE_PATH=/srv/vnclub/dumps
+VNDB_CACHE_DIR=/srv/vnclub/public/vndb-images
+VNDB_API_TOKEN=
+FRONTEND_URL=https://vnclub.example.com
+
+# 24 hours; keep this below vnclub-heavy.service TimeoutStartSec (26h).
+FULL_IMPORT_TIMEOUT=86400
+
+# The worker only ever runs tasks locally.
+HEAVY_MODE=local
+HEAVY_TASK=daily
+HEAVY_WORKDIR=/srv/vnclub/vndb-stats-backend
+HEAVY_PYTHON=.venv/bin/python
+HEAVY_TASK_SCRIPT=/srv/vnclub/deploy/native/scripts/heavy_task.py
