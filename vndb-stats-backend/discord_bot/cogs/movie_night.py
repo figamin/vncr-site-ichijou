@@ -5,8 +5,11 @@
 - /manage_movie_night (admin): pick the winner, reopen, start a new vote, set the
   showtime, pause/resume, post the board, configure; see views/movie_night.py
 
-An optional role can be configured to be pinged in the Movie Night channel when the
-showtime arrives.
+An optional role can be configured to be pinged twice a week: once when a new round's
+vote board goes up (the weekly "voting is open" ping) and again when the showtime
+arrives (the winner announcement). The weekly day/time is stored in the club's
+timezone (America/New_York by default), so "Saturday at 12:00" means noon Eastern,
+not noon UTC, and it follows EST/EDT across daylight saving.
 
 Voting is ALWAYS open (no "open a round" step) unless an admin pauses it. The pool
 and votes PERSIST; one film is flagged as this week's pick (winner_nomination_id) and
@@ -20,6 +23,7 @@ import asyncio
 import io
 import logging
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import discord
 from discord import app_commands
@@ -48,9 +52,12 @@ CONFIG_MOVIE_CHANNEL = "movie_night_channel_id"  # optional: the channel the cyc
 CONFIG_MOVIE_SHOW_WEEKDAY = "movie_night_show_weekday"  # 0=Mon .. 6=Sun
 CONFIG_MOVIE_SHOW_TIME = "movie_night_show_time"  # "HH:MM" UTC
 CONFIG_MOVIE_VOTE_ROLE = mn.CONFIG_VOTE_ROLE  # optional role gate on voting
-CONFIG_MOVIE_NOTIFY_ROLE = "movie_night_notify_role_id"  # optional role pinged at showtime
+CONFIG_MOVIE_NOTIFY_ROLE = "movie_night_notify_role_id"  # optional role pinged when voting opens + at showtime
 CONFIG_MOVIE_NOTIFIED_FOR = "movie_night_notified_showtime"  # showtime the ping already went out for
-DEFAULT_SHOW_TIME = "12:00"  # UTC; the weekly default time when none is configured
+CONFIG_MOVIE_VOTE_PINGED_FOR = "movie_night_vote_pinged_for"  # round the vote-open ping already went out for
+CONFIG_MOVIE_TIMEZONE = "movie_night_timezone"  # IANA zone the weekly day/time is read in
+DEFAULT_TIMEZONE = "America/New_York"  # the club's clock (EST/EDT)
+DEFAULT_SHOW_TIME = "12:00"  # club-local; the weekly default time when none is configured
 AUTO_RESET_AFTER = timedelta(hours=2)  # hands-off mode: wait this long past showtime before the next round
 NOTIFY_GRACE = timedelta(minutes=30)  # past this, a caught-up showtime is stale: skip the ping
 
@@ -58,6 +65,17 @@ WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturd
 COLOR = 0xE11D48
 TMDB_MOVIE_URL = "https://www.themoviedb.org/movie/{tmdb_id}?language=ja-JP"
 _UNSET = object()
+
+
+def valid_timezone(name: str | None) -> str | None:
+    """The name if it is a usable IANA zone, else None."""
+    if not name:
+        return None
+    try:
+        ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+    return name
 
 
 class MovieNightCog(commands.Cog):
@@ -71,7 +89,9 @@ class MovieNightCog(commands.Cog):
         self._show_time = DEFAULT_SHOW_TIME
         self._vote_role_id: int | None = None
         self._notify_role_id: int | None = None
+        self._timezone = DEFAULT_TIMEZONE  # club clock: the weekly day/time is read in it
         self._notified_showtime = ""  # showtime (ISO) the ping already went out for
+        self._vote_pinged_for = ""  # round the "voting is open" ping already went out for
 
     async def cog_load(self) -> None:
         await self._load_config()
@@ -92,6 +112,8 @@ class MovieNightCog(commands.Cog):
             CONFIG_MOVIE_VOTE_ROLE,
             CONFIG_MOVIE_NOTIFY_ROLE,
             CONFIG_MOVIE_NOTIFIED_FOR,
+            CONFIG_MOVIE_VOTE_PINGED_FOR,
+            CONFIG_MOVIE_TIMEZONE,
         ]
         try:
             async with async_session_maker() as db:
@@ -109,6 +131,8 @@ class MovieNightCog(commands.Cog):
         nr = cfg.get(CONFIG_MOVIE_NOTIFY_ROLE)
         self._notify_role_id = int(nr) if nr not in (None, "") else None
         self._notified_showtime = cfg.get(CONFIG_MOVIE_NOTIFIED_FOR) or ""
+        self._vote_pinged_for = cfg.get(CONFIG_MOVIE_VOTE_PINGED_FOR) or ""
+        self._timezone = valid_timezone(cfg.get(CONFIG_MOVIE_TIMEZONE)) or DEFAULT_TIMEZONE
 
     async def _save_config(self, key: str, value: str) -> None:
         async with async_session_maker() as db:
@@ -129,6 +153,7 @@ class MovieNightCog(commands.Cog):
         show_time=_UNSET,
         vote_role_id=_UNSET,
         notify_role_id=_UNSET,
+        timezone_name=_UNSET,
     ) -> None:
         if channel_id is not _UNSET:
             await self._save_config(CONFIG_MOVIE_CHANNEL, "" if channel_id is None else str(channel_id))
@@ -140,11 +165,42 @@ class MovieNightCog(commands.Cog):
             await self._save_config(CONFIG_MOVIE_VOTE_ROLE, "" if vote_role_id is None else str(vote_role_id))
         if notify_role_id is not _UNSET:
             await self._save_config(CONFIG_MOVIE_NOTIFY_ROLE, "" if notify_role_id is None else str(notify_role_id))
+        if timezone_name is not _UNSET:
+            await self._save_config(CONFIG_MOVIE_TIMEZONE, timezone_name or DEFAULT_TIMEZONE)
         await self._load_config()
 
-    def default_showtime_hint(self) -> str:
-        dt = self._next_default_showtime(datetime.now(timezone.utc))
-        return dt.strftime("%Y-%m-%d %H:%M") if dt else ""
+    def tz(self) -> ZoneInfo:
+        """The club's timezone, falling back to the default if the stored name is bad."""
+        return ZoneInfo(valid_timezone(self._timezone) or DEFAULT_TIMEZONE)
+
+    def local_to_utc(self, dt: datetime) -> datetime:
+        """Read a naive wall-clock time as club-local and return it in UTC."""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=self.tz())
+        return dt.astimezone(timezone.utc)
+
+    def club_time_str(self, dt: datetime | None) -> str:
+        """'Sat, Nov 07 2026 · 12:00 EST' on the club's clock (UTC assumed if naive),
+        for banner art where Discord's auto-localised timestamps can't be used."""
+        if dt is None:
+            return ""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(self.tz()).strftime("%a, %b %d %Y · %H:%M %Z")
+
+    def default_showtime_hint(self, now: datetime | None = None) -> str:
+        dt = self._next_default_showtime(now or datetime.now(timezone.utc))
+        return dt.astimezone(self.tz()).strftime("%Y-%m-%d %H:%M") if dt else ""
+
+    def schedule_label(self, now: datetime | None = None) -> str:
+        """The weekly default in the club's own terms, e.g.
+        'Saturday at 12:00 EST (America/New_York)'; 'Not set' when there is none."""
+        if self._show_weekday is None or not self._show_time:
+            return "Not set"
+        nxt = self._next_default_showtime(now or datetime.now(timezone.utc))
+        abbrev = nxt.astimezone(self.tz()).tzname() if nxt else ""
+        tail = f" {abbrev}" if abbrev else ""
+        return f"{WEEKDAY_NAMES[self._show_weekday]} at {self._show_time}{tail} ({self._timezone})"
 
     def _next_default_showtime(self, now: datetime) -> datetime | None:
         if self._show_weekday is None or not self._show_time:
@@ -153,10 +209,14 @@ class MovieNightCog(commands.Cog):
             hh, mm = (int(x) for x in self._show_time.split(":"))
         except ValueError:
             return None
-        days_ahead = (self._show_weekday - now.weekday()) % 7
-        cand = now.replace(hour=hh, minute=mm, second=0, microsecond=0) + timedelta(days=days_ahead)
+        # Match the weekday on the club's clock, not UTC: Saturday 12:00 Eastern is
+        # Saturday in UTC too, but an evening slot would otherwise land on the wrong day.
+        local_now = now.astimezone(self.tz())
+        days_ahead = (self._show_weekday - local_now.weekday()) % 7
+        local = local_now.replace(hour=hh, minute=mm, second=0, microsecond=0) + timedelta(days=days_ahead)
+        cand = local.astimezone(timezone.utc)
         if cand <= now:
-            cand += timedelta(days=7)
+            cand = (local + timedelta(days=7)).astimezone(timezone.utc)
         return cand
 
     @staticmethod
@@ -191,16 +251,13 @@ class MovieNightCog(commands.Cog):
             embed.add_field(name="🏆 This week's pick", value=pick.title, inline=False)
         configured = self.bot.get_channel(self._channel_id) if self._channel_id else None
         board_channel = self.bot.get_channel(cycle.channel_id) if (cycle and cycle.channel_id) else None
-        sched = "Not set"
-        if self._show_weekday is not None and self._show_time:
-            sched = f"{WEEKDAY_NAMES[self._show_weekday]} at {self._show_time} UTC"
         chan = configured or board_channel
         embed.add_field(
             name="Channel",
             value=chan.mention if chan else "*not set - Post vote board here, or Configure a channel*",
             inline=False,
         )
-        embed.add_field(name="Default schedule", value=sched, inline=False)
+        embed.add_field(name="Default schedule", value=self.schedule_label(), inline=False)
         auto = bool(self._channel_id and self._show_weekday is not None and self._show_time)
         embed.add_field(
             name="Mode",
@@ -215,14 +272,12 @@ class MovieNightCog(commands.Cog):
 
     def config_embed(self) -> discord.Embed:
         channel = self.bot.get_channel(self._channel_id) if self._channel_id else None
-        sched = "Not set"
-        if self._show_weekday is not None and self._show_time:
-            sched = f"{WEEKDAY_NAMES[self._show_weekday]} at {self._show_time} UTC"
         embed = discord.Embed(
             title="⚙️ Movie Night: Configure",
             description="Set a channel + weekly day/time to run Movie Night fully hands-off: the bot posts "
-            "the board, auto-picks the winner at the deadline, posts the banner, and starts the next week's "
-            "vote on its own. Leave the channel unset to drive it manually with Post vote board.",
+            "and pins the board, pings the role below when voting opens, auto-picks the winner at the "
+            "deadline, announces it with a ping at showtime, and starts the next week's vote on its own. "
+            "Leave the channel unset to drive it manually with Post vote board.",
             color=COLOR,
         )
         embed.add_field(
@@ -230,11 +285,16 @@ class MovieNightCog(commands.Cog):
             value=channel.mention if channel else "*not set (manual mode)*",
             inline=False,
         )
-        embed.add_field(name="Default schedule", value=sched, inline=False)
+        embed.add_field(name="Default schedule", value=self.schedule_label(), inline=False)
+        embed.add_field(name="Timezone", value=self._timezone, inline=False)
         vote_access = f"<@&{self._vote_role_id}> only" if self._vote_role_id else "Everyone"
         embed.add_field(name="Who can vote", value=vote_access, inline=False)
-        ping = f"<@&{self._notify_role_id}> at showtime" if self._notify_role_id else "Off"
-        embed.add_field(name="Showtime ping", value=ping, inline=False)
+        ping = (
+            f"<@&{self._notify_role_id}> when voting opens and at showtime"
+            if self._notify_role_id
+            else "Off"
+        )
+        embed.add_field(name="Role ping", value=ping, inline=False)
         return embed
 
     def pool_embed(self, cycle, standings, selected_id=None) -> discord.Embed:
@@ -258,17 +318,48 @@ class MovieNightCog(commands.Cog):
 
     # ── Vote board helpers ────────────────────────────────────
 
+    @staticmethod
+    def _round_stamp(cycle) -> str:
+        """Identity of one week's round, used to ping for the vote only once per round:
+        the showtime date when there is one (cycles are reused across rounds), else the
+        cycle id."""
+        return cycle.scheduled_for.isoformat() if cycle.scheduled_for else f"cycle-{cycle.id}"
+
+    def _vote_ping(self, cycle, channel) -> tuple[str, "discord.AllowedMentions"] | None:
+        """The weekly "voting is open" ping for a round, or None when there's no role
+        configured or it already went out for this round (a repost or a restart must not
+        ping twice)."""
+        if not self._notify_role_id:
+            return None
+        stamp = self._round_stamp(cycle)
+        if self._vote_pinged_for == stamp:
+            return None
+        content = (
+            f"<@&{self._notify_role_id}> 🎬 **Movie Night voting is open** - "
+            "add films with **/movie_nominate** and pick yours with **/movie_vote**."
+        )
+        return content, self._ping_mentions(channel)
+
+    async def _mark_vote_pinged(self, stamp: str) -> None:
+        await self._save_config(CONFIG_MOVIE_VOTE_PINGED_FOR, stamp)
+        self._vote_pinged_for = stamp
+
     async def _post_vote_message(self, channel, cycle, standings) -> "discord.Message | None":
-        """Post a fresh public vote board to `channel`. Persists the cycle's channel +
-        message id ONLY after the send succeeds (so a failed send never leaves the cycle
-        pointing at a board that isn't there). Returns the message, or None on failure."""
+        """Post a fresh public vote board to `channel`, pinned. When a notify role is set,
+        the first board of a round also pings it (once per round) so the weekly vote is
+        announced rather than posted silently. Persists the cycle's channel + message id
+        ONLY after the send succeeds (so a failed send never leaves the cycle pointing at
+        a board that isn't there). Returns the message, or None on failure."""
         noms = [n for n, _ in standings]
         view = MovieVoteView(cycle.id, build_vote_options(noms))
+        ping = self._vote_ping(cycle, channel)
+        content, mentions = ping if ping else (None, discord.AllowedMentions.none())
         try:
             msg = await channel.send(
+                content=content,
                 embed=await build_vote_embed(self.bot, cycle, standings),
                 view=view,
-                allowed_mentions=discord.AllowedMentions.none(),
+                allowed_mentions=mentions,
             )
         except discord.HTTPException as e:
             logger.warning("Movie Night: couldn't post the board to %s: %s", channel.id, e)
@@ -280,6 +371,8 @@ class MovieNightCog(commands.Cog):
             cyc.message_id = msg.id
             await db.commit()
         await self._pin_board(msg)
+        if ping:
+            await self._mark_vote_pinged(self._round_stamp(cycle))
         return msg
 
     async def _redirect_old_board(self, channel_id: int | None, message_id: int, jump_url: str) -> None:
@@ -522,7 +615,7 @@ class MovieNightCog(commands.Cog):
                     style=discord.ButtonStyle.link,
                 )
             )
-            showtime_str = winner.showtime.strftime("%a, %b %d %Y · %H:%M UTC") if winner.showtime else ""
+            showtime_str = self.club_time_str(winner.showtime)
             banner = await render_winner_banner(
                 poster_url=winner.poster_url,
                 title=f"{winner.title}{year}",
@@ -666,11 +759,12 @@ class MovieNightCog(commands.Cog):
         self._notified_showtime = stamp
 
     async def _notify_tick(self) -> None:
-        """Ping the configured role in the Movie Night channel when the showtime arrives.
-        Own loop rather than the 10-minute scheduler so the ping lands on the minute. The
-        showtime it fired for is stored, so a restart can't ping twice for one showing;
-        a showtime only caught up on long after the fact (bot was down) is marked without
-        pinging so members don't get a late ping for a film that already started."""
+        """Announce the winner and ping the configured role in the Movie Night channel
+        when the showtime arrives. Own loop rather than the 10-minute scheduler so the
+        ping lands on the minute. The showtime it fired for is stored, so a restart can't
+        ping twice for one showing; a showtime only caught up on long after the fact (bot
+        was down) is marked without pinging so members don't get a late ping for a film
+        that already started."""
         if not self._notify_role_id:
             return
         async with async_session_maker() as db:
@@ -687,7 +781,19 @@ class MovieNightCog(commands.Cog):
             await self._mark_notified(stamp)
             return
         if cycle.winner_nomination_id is None:
-            return  # no film picked yet: an admin pick within the grace window still pings
+            # The deadline passed without a pick (scheduler tick missed, or the bot was
+            # down across it): settle the leader now so the announcement can name a
+            # winner instead of the showtime passing in silence.
+            async with async_session_maker() as db:
+                pool_n = await mn.count_nominations(db, cycle.id)
+            if not pool_n:
+                return
+            logger.info("Movie Night: no pick at showtime - auto-picking the leader before the ping")
+            await self._do_pick(cycle.id)
+            async with async_session_maker() as db:
+                cycle = await mn.get_active_cycle(db)
+            if cycle.winner_nomination_id is None:
+                return
         async with async_session_maker() as db:
             nom = await mn.get_nomination(db, cycle.winner_nomination_id)
         if nom is None:
@@ -697,9 +803,31 @@ class MovieNightCog(commands.Cog):
             logger.warning("Movie Night: no reachable channel for the showtime ping")
             return
         year = f" ({nom.release_year})" if nom.release_year else ""
+        embed = discord.Embed(
+            title="🏆 Movie Night starts now",
+            description=f"**{nom.title}{year}** won this week's vote.",
+            color=COLOR,
+        )
+        embed.add_field(
+            name="Showtime",
+            value=f"<t:{int(cycle.scheduled_for.timestamp())}:F> (<t:{int(cycle.scheduled_for.timestamp())}:R>)",
+            inline=False,
+        )
+        if nom.poster_url:
+            embed.set_thumbnail(url=nom.poster_url)
+        view = discord.ui.View()
+        view.add_item(
+            discord.ui.Button(
+                label="View on TMDB",
+                url=TMDB_MOVIE_URL.format(tmdb_id=nom.tmdb_id),
+                style=discord.ButtonStyle.link,
+            )
+        )
         try:
             await channel.send(
-                f"<@&{self._notify_role_id}> 🎬 **Movie Night** starts now: **{nom.title}{year}**",
+                content=f"<@&{self._notify_role_id}> 🎬 **Movie Night** starts now!",
+                embed=embed,
+                view=view,
                 allowed_mentions=self._ping_mentions(channel),
             )
         except discord.HTTPException as e:
@@ -797,7 +925,7 @@ class MovieNightCog(commands.Cog):
         if ev.url:
             view.add_item(discord.ui.Button(label="View on TMDB", url=ev.url, style=discord.ButtonStyle.link))
         if banner:
-            showtime_str = ev.start_at.strftime("%a, %b %d %Y · %H:%M UTC") if ev.start_at else ""
+            showtime_str = self.club_time_str(ev.start_at)
             png = await render_winner_banner(
                 poster_url=ev.image_url, title=name, subtitle=showtime_str, eyebrow="NEXT MOVIE NIGHT"
             )

@@ -57,6 +57,13 @@ export const PROJECT_META: Record<ChangelogProject, ProjectMeta> = {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    date: '2026-10-31',
+    project: 'ichijou',
+    title: 'Movie Night on the club’s clock',
+    description:
+      'Kinoplex now posts and pins each week’s vote board and pings the Kino role when voting opens, then at noon Eastern on Saturday announces the film that won and pings the role again so nobody misses the start. The weekly time is stored in the club’s timezone, so it holds through the switch between EST and EDT.',
+  },
+  {
     date: '2026-10-19',
     project: 'site',
     title: 'New management',

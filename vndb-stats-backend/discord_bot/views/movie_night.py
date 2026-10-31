@@ -9,6 +9,7 @@ is the only thing that stops voting. Opened by the admin-gated /manage_movie_nig
 
 import logging
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import discord
 from discord import ui
@@ -77,7 +78,7 @@ class MovieNightAdminView(BaseView):
     # --- actions ---------------------------------------------------------
 
     async def _set_showtime(self, interaction: discord.Interaction) -> None:
-        modal = _ShowtimeModal(self.cog.default_showtime_hint())
+        modal = _ShowtimeModal(self.cog, self.cog.default_showtime_hint())
         await interaction.response.send_modal(modal)
         await modal.wait()
         if modal.showtime is None and not modal.use_default:
@@ -180,12 +181,13 @@ class MovieNightAdminView(BaseView):
 
 
 class _ShowtimeModal(ui.Modal, title="Schedule Movie Night"):
-    def __init__(self, default_hint: str = ""):
+    def __init__(self, cog, default_hint: str = ""):
         super().__init__()
+        self.cog = cog
         self.showtime: datetime | None = None
         self.use_default = False
         self.showtime_input = ui.TextInput(
-            label="Showtime UTC (blank = weekly default)",
+            label=f"Showtime ({cog._timezone}, blank = weekly default)",
             placeholder=default_hint or "2026-06-21 12:00",
             default=default_hint or None,
             required=False,
@@ -200,13 +202,16 @@ class _ShowtimeModal(ui.Modal, title="Schedule Movie Night"):
             await interaction.response.defer()
             return
         try:
-            self.showtime = datetime.strptime(raw, "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+            parsed = datetime.strptime(raw, "%Y-%m-%d %H:%M")
         except ValueError:
             await interaction.response.send_message(
-                "Invalid showtime. Use YYYY-MM-DD HH:MM (UTC), or leave blank for the weekly default.",
+                f"Invalid showtime. Use YYYY-MM-DD HH:MM ({self.cog._timezone}), or leave blank for the "
+                "weekly default.",
                 ephemeral=True,
             )
             return
+        # Entered on the club's clock, stored in UTC.
+        self.showtime = self.cog.local_to_utc(parsed)
         await interaction.response.defer()
 
 
@@ -226,6 +231,7 @@ class MovieNightConfigView(BaseView):
         self.add_item(_VoteRoleSelect(self))
         self.add_item(_NotifyRoleSelect(self))
         self.add_item(_Btn(self._edit_time, "Set time", discord.ButtonStyle.secondary, "🕒", row=4))
+        self.add_item(_Btn(self._edit_timezone, "Set timezone", discord.ButtonStyle.secondary, "🌐", row=4))
         self.add_item(_Btn(self._back, "Back", discord.ButtonStyle.secondary, "⬅️", row=4))
 
     def get_embed(self) -> discord.Embed:
@@ -238,6 +244,13 @@ class MovieNightConfigView(BaseView):
 
     async def _edit_time(self, interaction: discord.Interaction) -> None:
         modal = _TimeModal(self.cog)
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+        if modal.saved:
+            await self._rerender(interaction)
+
+    async def _edit_timezone(self, interaction: discord.Interaction) -> None:
+        modal = _TimezoneModal(self)
         await interaction.response.send_modal(modal)
         await modal.wait()
         if modal.saved:
@@ -307,12 +320,12 @@ class _VoteRoleSelect(ui.RoleSelect):
 
 
 class _NotifyRoleSelect(ui.RoleSelect):
-    """Optional role pinged in the Movie Night channel when the showtime arrives;
-    deselect for no ping."""
+    """Optional role pinged when a round's vote board goes up and again when the
+    showtime arrives; deselect for no ping."""
 
     def __init__(self, view: MovieNightConfigView):
         super().__init__(
-            placeholder="Ping a role at showtime (deselect = no ping)…",
+            placeholder="Ping a role when voting opens + at showtime…",
             min_values=0,
             max_values=1,
             row=3,
@@ -332,7 +345,7 @@ class _TimeModal(ui.Modal, title="Default showtime"):
         self.cog = cog
         self.saved = False
         self.time_input = ui.TextInput(
-            label="Default time (HH:MM UTC)",
+            label=f"Weekly time HH:MM ({cog._timezone})",
             placeholder="12:00",
             default=cog._show_time or None,
             required=False,
@@ -348,9 +361,44 @@ class _TimeModal(ui.Modal, title="Default showtime"):
                 if not (0 <= hh < 24 and 0 <= mm < 60):
                     raise ValueError
             except ValueError:
-                await interaction.response.send_message("Invalid time. Use HH:MM (24h UTC).", ephemeral=True)
+                await interaction.response.send_message(
+                    f"Invalid time. Use HH:MM (24h, {self.cog._timezone}).", ephemeral=True
+                )
                 return
         await self.cog.set_config(show_time=t)
+        self.saved = True
+        await interaction.response.defer()
+
+
+class _TimezoneModal(ui.Modal, title="Showtime timezone"):
+    """The clock the weekly day/time is read in, so '12:00' means noon local and
+    follows daylight saving instead of being pinned to a UTC offset."""
+
+    def __init__(self, view: MovieNightConfigView):
+        super().__init__()
+        self.cfg_view = view
+        self.saved = False
+        self.tz_input = ui.TextInput(
+            label="IANA timezone",
+            placeholder="America/New_York",
+            default=view.cog._timezone,
+            required=True,
+            max_length=64,
+        )
+        self.add_item(self.tz_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        name = self.tz_input.value.strip()
+        try:
+            ZoneInfo(name)
+        except (ZoneInfoNotFoundError, ValueError):
+            await interaction.response.send_message(
+                f"Unknown timezone **{name}**. Use an IANA name such as America/New_York, "
+                "Europe/London or Asia/Tokyo.",
+                ephemeral=True,
+            )
+            return
+        await self.cfg_view.cog.set_config(timezone_name=name)
         self.saved = True
         await interaction.response.defer()
 
