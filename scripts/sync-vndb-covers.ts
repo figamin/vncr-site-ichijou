@@ -30,7 +30,14 @@ function resolveCacheDir(): string {
 const CACHE_DIR = resolveCacheDir();
 const CV_DIR = path.join(CACHE_DIR, 'cv');
 const WEBP_QUALITY = 80;
-const CONCURRENT_CONVERSIONS = 10;
+// Conversion is CPU-bound and libvips sizes its own pool at one thread per core
+// *per operation*. Ten operations therefore mean ten times the machine, which
+// starves whatever else is running and makes each individual resize slower
+// (the 30s per-image timeouts are thrash, not slow files). Leave a couple of
+// cores for web/API/db on a served host: CONVERT_CONCURRENCY=2 is right for a
+// 2-core box, 4 for an 8-core one.
+const CONCURRENT_CONVERSIONS = Number(process.env.CONVERT_CONCURRENCY ?? 2);
+sharp.concurrency(Number(process.env.SHARP_CONCURRENCY ?? 1));
 const VARIANT_WIDTHS = [256, 512] as const;
 const IS_WINDOWS = process.platform === 'win32';
 
@@ -179,7 +186,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-const SHARP_TIMEOUT_MS = 30_000; // 30s per image
+// Per-image ceiling. Generous on purpose: a large cover on a busy host can take
+// a while once libvips is limited to a couple of threads.
+const SHARP_TIMEOUT_MS = Number(process.env.SHARP_TIMEOUT_MS ?? 120_000);
 
 /**
  * Convert a single image to WebP with retry
