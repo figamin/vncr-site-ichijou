@@ -174,3 +174,7 @@ vndb-stats-backend/scripts/_tmp_*.py
 
 # Brainstorming companion scratch files
 .superpowers/
+.bun/
+dumps/
+.local/
+.config/

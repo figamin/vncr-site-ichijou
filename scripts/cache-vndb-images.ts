@@ -41,8 +41,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_VNDB_STATS_API || 'http://localhost:
 const CONCURRENT_DOWNLOADS = 5; // parallel image downloads
 const WEBP_QUALITY = 80; // WebP quality (0-100)
 
+// Shape of GET /api/v1/vn/search/ (schemas.VNSearchResponse).
 interface BackendVNResponse {
-  vns: Array<{
+  results: Array<{
     id: string;
     title: string;
     image_url?: string;
@@ -174,8 +175,10 @@ async function fetchTopVNs(count: number): Promise<string[]> {
 
   try {
     while (vnIds.length < count) {
-      // Use backend browse endpoint which queries local PostgreSQL
-      const url = `${BACKEND_URL}/api/v1/browse/vns?sort=rating&sort_order=desc&limit=${pageSize}&page=${page}`;
+      // Use the VN search endpoint, which queries local PostgreSQL. The
+      // trailing slash matters: the router mounts "/search/" and the
+      // slash-less form is only reachable through a redirect.
+      const url = `${BACKEND_URL}/api/v1/vn/search/?sort=rating&sort_order=desc&limit=${pageSize}&page=${page}`;
       console.log(`  Fetching page ${page}...`);
 
       const response = await fetch(url, {
@@ -193,7 +196,7 @@ async function fetchTopVNs(count: number): Promise<string[]> {
 
       const data: BackendVNResponse = await response.json();
 
-      for (const vn of data.vns) {
+      for (const vn of data.results) {
         vnIds.push(vn.id);
         if (vn.image_url) {
           imagesToCache.push({ id: vn.id, title: vn.title, url: vn.image_url });
@@ -307,11 +310,13 @@ async function main() {
   // This is expected during Docker builds where the backend isn't running yet.
   // Images will be cached on-demand at runtime via the /img/ route.
   try {
-    const healthCheck = await fetch(`${BACKEND_URL}/api/v1/browse/vns?limit=1&page=1`, {
+    const healthCheck = await fetch(`${BACKEND_URL}/api/v1/vn/search/?limit=1&page=1`, {
       signal: AbortSignal.timeout(3000),
     });
     if (!healthCheck.ok) {
-      console.log(`Backend not available (HTTP ${healthCheck.status}), skipping image pre-cache.`);
+      // Name the URL: a 404 here usually means the wrong base (a stale
+      // NEXT_PUBLIC_VNDB_STATS_API), not a missing route.
+      console.log(`Backend not available (HTTP ${healthCheck.status}) at ${BACKEND_URL}, skipping image pre-cache.`);
       console.log('Images will be cached on-demand at runtime.\n');
       return;
     }
