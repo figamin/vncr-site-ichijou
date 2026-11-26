@@ -807,8 +807,8 @@ async def _sync_characters_and_releases(valid_vn_ids: set[str]) -> None:
                 vn_batch.append(
                     (r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], sanitize_text(r[8]) if r[8] else None)
                 )
-                for lbl in r[9] or ():
-                    lbl_batch.append((r[0], r[1], int(lbl)))
+                for lbl in dict.fromkeys(int(x) for x in (r[9] or ()) if x is not None):
+                    lbl_batch.append((r[0], r[1], lbl))
             if vn_batch:
                 await copy_bulk_data(
                     "ulist_vns_staging",
