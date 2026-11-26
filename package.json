@@ -10,7 +10,7 @@
     "dev:all": "bunx --bun concurrently -n next,api -c blue,green \"bunx --bun next dev -p 3000\" \"bun run api:dev\"",
     "prebuild": "bun scripts/generate-search-index.ts",
     "prebuild:prod": "bun scripts/generate-search-index.ts && bun scripts/cache-vndb-images.ts",
-    "build": "BUN_JSC_gcMaxHeapSize=4294967296 NODE_OPTIONS=--max-old-space-size=4096 bun --smol --bun ./node_modules/next/dist/bin/next build",
+    "build": "BUN_JSC_gcMaxHeapSize=6442450944 NODE_OPTIONS=--max-old-space-size=6144 bun --bun ./node_modules/next/dist/bin/next build --turbopack",
     "start": "bunx --bun next start",
     "prod": "bun run build && bun scripts/start-dev.js --prod",
     "lint": "bunx --bun eslint --cache --cache-location .next/cache/eslint/ app components lib scripts",
