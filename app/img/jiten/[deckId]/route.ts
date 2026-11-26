@@ -17,9 +17,9 @@ const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 // Same cache root as the VNDB /img/ route, so the path-to-file mapping lines up.
 function cacheFile(deckId: string): string {
   const dir = process.env.VNDB_CACHE_DIR
-    ? path.resolve(process.env.VNDB_CACHE_DIR)
-    : path.join(os.homedir(), '.vnclub', 'vndb-cache');
-  return path.join(dir, 'jiten', `${deckId}.webp`);
+    ? path.resolve(/* turbopackIgnore: true */ process.env.VNDB_CACHE_DIR)
+    : path.join(/* turbopackIgnore: true */ os.homedir(), '.vnclub', 'vndb-cache');
+  return path.join(/* turbopackIgnore: true */ dir, 'jiten', `${deckId}.webp`);
 }
 
 // Share one outbound fetch across concurrent requests for the same deck.
@@ -44,8 +44,8 @@ async function fetchAndCache(deckId: string, dest: string, clientIp: string): Pr
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.byteLength > MAX_IMAGE_SIZE_BYTES) return null;
       const webp = await sharp(buf).webp({ quality: WEBP_QUALITY }).toBuffer();
-      await fs.mkdir(path.dirname(dest), { recursive: true });
-      await fs.writeFile(dest, webp);
+      await fs.mkdir(/*turbopackIgnore: true*/ path.dirname(dest), { recursive: true });
+      await fs.writeFile(/*turbopackIgnore: true*/ dest, webp);
       return webp;
     } catch {
       return null;
@@ -82,8 +82,8 @@ export async function GET(
   let cached: Buffer | null = null;
   let stale = true;
   try {
-    cached = await fs.readFile(dest);
-    stale = Date.now() - (await fs.stat(dest)).mtimeMs > MAX_AGE_MS;
+    cached = await fs.readFile(/*turbopackIgnore: true*/ dest);
+    stale = Date.now() - (await fs.stat(/*turbopackIgnore: true*/ dest)).mtimeMs > MAX_AGE_MS;
   } catch {
     // cache miss
   }

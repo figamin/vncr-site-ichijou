@@ -29,14 +29,14 @@ import {
 // matching file at build time. With 190K+ cached images this added ~9 minutes.
 function getCacheDir(): string {
   const dir = process.env.VNDB_CACHE_DIR;
-  if (dir) return path.resolve(dir);
-  return path.join(os.homedir(), '.vnclub', 'vndb-cache');
+  if (dir) return path.resolve(/* turbopackIgnore: true */ dir);
+  return path.join(/* turbopackIgnore: true */ os.homedir(), '.vnclub', 'vndb-cache');
 }
 
 function getPlaceholderDir(): string {
   const dir = process.env.VNDB_CACHE_DIR;
-  if (dir) return path.resolve(dir, '..'); // parent of vndb cache
-  return path.join(os.homedir(), '.vnclub');
+  if (dir) return path.resolve(/* turbopackIgnore: true */ dir, '..'); // parent of vndb cache
+  return path.join(/* turbopackIgnore: true */ os.homedir(), '.vnclub');
 }
 
 const PLACEHOLDER_SVG_PATH = path.join(process.cwd(), 'public', 'assets', 'cover-placeholder.svg');
@@ -64,7 +64,7 @@ const CONTENT_TYPES: Record<string, string> = {
  */
 async function isCacheStale(filePath: string): Promise<boolean> {
   try {
-    const stats = await fs.stat(filePath);
+    const stats = await fs.stat(/*turbopackIgnore: true*/ filePath);
     const ageMs = Date.now() - stats.mtimeMs;
     return ageMs > MAX_AGE_MS;
   } catch {
@@ -77,8 +77,8 @@ async function isCacheStale(filePath: string): Promise<boolean> {
  * Ensure the directory structure exists for a file path
  */
 async function ensureDir(filePath: string): Promise<void> {
-  const dir = path.dirname(filePath);
-  await fs.mkdir(dir, { recursive: true });
+  const dir = path.dirname(/* turbopackIgnore: true */ filePath);
+  await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
 }
 
 /**
@@ -151,7 +151,7 @@ async function doFetchAndCache(
 
     // Save to cache
     await ensureDir(cachePath);
-    await fs.writeFile(cachePath, buffer);
+    await fs.writeFile(/* turbopackIgnore: true */ cachePath, buffer);
 
     // Also convert to WebP for optimized serving
     const webpPath = cachePath.replace(/\.(jpg|jpeg)$/i, '.webp');
@@ -159,7 +159,7 @@ async function doFetchAndCache(
       try {
         await sharp(buffer)
           .webp({ quality: WEBP_QUALITY })
-          .toFile(webpPath);
+          .toFile(/* turbopackIgnore: true */ webpPath);
       } catch {
         // WebP conversion failed, original is still cached
       }
@@ -189,7 +189,7 @@ async function generateResizedVariant(
       .webp({ quality: WEBP_QUALITY })
       .toBuffer();
 
-    await fs.writeFile(outputPath, resizedBuffer);
+    await fs.writeFile(/* turbopackIgnore: true */ outputPath, resizedBuffer);
     return resizedBuffer;
   } catch {
     return null;
@@ -237,7 +237,7 @@ export async function GET(
         // Try to read cached WebP placeholder first
         let placeholderBuffer: Buffer;
         try {
-          placeholderBuffer = await fs.readFile(/*turbopackIgnore: true*/ path.join(getPlaceholderDir(), 'placeholder.webp'));
+          placeholderBuffer = await fs.readFile(/*turbopackIgnore: true*/ path.join(/* turbopackIgnore: true */ getPlaceholderDir(), 'placeholder.webp'));
         } catch {
           // Generate WebP placeholder from SVG if it doesn't exist
           const svgBuffer = await fs.readFile(PLACEHOLDER_SVG_PATH);
@@ -246,8 +246,9 @@ export async function GET(
             .webp({ quality: 80 })
             .toBuffer();
           // Cache it for future requests
-          await ensureDir(path.join(getPlaceholderDir(), 'placeholder.webp'));
-          await fs.writeFile(path.join(getPlaceholderDir(), 'placeholder.webp'), placeholderBuffer);
+          const placeholderDest = path.join(/* turbopackIgnore: true */ getPlaceholderDir(), 'placeholder.webp');
+          await ensureDir(placeholderDest);
+          await fs.writeFile(/* turbopackIgnore: true */ placeholderDest, placeholderBuffer);
         }
         return new NextResponse(new Uint8Array(placeholderBuffer), {
           headers: {
@@ -274,9 +275,9 @@ export async function GET(
   // Build cache path - include width suffix if resizing
   let cachePath: string;
   if (targetWidth) {
-    cachePath = path.join(getCacheDir(), baseDir, `${baseFileName}-w${targetWidth}.webp`);
+    cachePath = path.join(/* turbopackIgnore: true */ getCacheDir(), baseDir, `${baseFileName}-w${targetWidth}.webp`);
   } else {
-    cachePath = path.join(getCacheDir(), relativePath);
+    cachePath = path.join(/* turbopackIgnore: true */ getCacheDir(), relativePath);
   }
 
   let extension = targetWidth ? '.webp' : path.extname(relativePath);
@@ -291,7 +292,7 @@ export async function GET(
     && crypto.timingSafeEqual(Buffer.from(refreshToken), Buffer.from(refreshSecret));
 
   // Helper paths
-  const baseCachePath = path.join(getCacheDir(), relativePath);
+  const baseCachePath = path.join(/* turbopackIgnore: true */ getCacheDir(), relativePath);
   const baseWebpPath = baseCachePath.replace(/\.(jpg|jpeg)$/i, '.webp');
   const baseJpgPath = baseCachePath.replace(/\.webp$/i, '.jpg');
 
@@ -383,7 +384,7 @@ export async function GET(
   // PREFER WebP: Check if a WebP version exists for JPG requests
   if (extension === '.jpg' || extension === '.jpeg') {
     try {
-      await fs.access(baseWebpPath);
+      await fs.access(/*turbopackIgnore: true*/ baseWebpPath);
       cachePath = baseWebpPath;
       extension = '.webp';
       contentType = 'image/webp';
@@ -395,7 +396,7 @@ export async function GET(
   // Handle .webp requests when only .jpg exists (on-demand conversion)
   if (extension === '.webp') {
     try {
-      await fs.access(cachePath);
+      await fs.access(/*turbopackIgnore: true*/ cachePath);
     } catch {
       // WebP doesn't exist, check for JPG source and convert
       try {
@@ -403,7 +404,7 @@ export async function GET(
         await ensureDir(cachePath);
         await sharp(jpgBuffer)
           .webp({ quality: WEBP_QUALITY })
-          .toFile(cachePath);
+          .toFile(/* turbopackIgnore: true */ cachePath);
       } catch {
         // No JPG source either, will need to fetch from VNDB
       }

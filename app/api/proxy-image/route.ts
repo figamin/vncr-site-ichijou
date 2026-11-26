@@ -95,8 +95,8 @@ const inflightFetches = new Map<string, Promise<Buffer | null>>();
  */
 function getCacheDir(): string {
   const dir = process.env.PROXY_CACHE_DIR;
-  if (dir) return path.resolve(dir);
-  return path.join(os.homedir(), '.vnclub', 'proxy-cache');
+  if (dir) return path.resolve(/* turbopackIgnore: true */ dir);
+  return path.join(/* turbopackIgnore: true */ os.homedir(), '.vnclub', 'proxy-cache');
 }
 
 /**
@@ -106,7 +106,7 @@ function getCachePath(url: string, width?: number): string {
   const hash = crypto.createHash('sha256').update(url).digest('hex');
   // Use first 2 chars as subdirectory to avoid too many files in one dir
   const name = width ? `${hash}-w${width}.webp` : `${hash}.webp`;
-  return path.join(getCacheDir(), hash.slice(0, 2), name);
+  return path.join(/* turbopackIgnore: true */ getCacheDir(), hash.slice(0, 2), name);
 }
 
 function backendBase(): string | null {
@@ -169,7 +169,7 @@ async function isPermittedUrl(url: string): Promise<boolean> {
  */
 async function isCacheStale(filePath: string): Promise<boolean> {
   try {
-    const stats = await fs.stat(filePath);
+    const stats = await fs.stat(/*turbopackIgnore: true*/ filePath);
     return Date.now() - stats.mtimeMs > MAX_AGE_MS;
   } catch {
     return true;
@@ -180,7 +180,7 @@ async function isCacheStale(filePath: string): Promise<boolean> {
  * Ensure the directory structure exists for a file path
  */
 async function ensureDir(filePath: string): Promise<void> {
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.mkdir(/* turbopackIgnore: true */ path.dirname(/* turbopackIgnore: true */ filePath), { recursive: true });
 }
 
 /**
@@ -274,7 +274,7 @@ async function doFetchAndCache(
     const webpBuffer = await sharp(buffer)
       .webp({ quality: WEBP_QUALITY })
       .toBuffer();
-    await fs.writeFile(cachePath, webpBuffer);
+    await fs.writeFile(/* turbopackIgnore: true */ cachePath, webpBuffer);
 
     // Probabilistic cache eviction: runs ~1% of writes to avoid unbounded growth
     if (Math.random() < EVICT_PROBABILITY) {
@@ -304,7 +304,7 @@ async function evictStaleCache(): Promise<void> {
     return;
   }
   for (const sub of subdirs) {
-    const subPath = path.join(cacheDir, sub);
+    const subPath = path.join(/* turbopackIgnore: true */ cacheDir, sub);
     let files: string[];
     try {
       files = await fs.readdir(/*turbopackIgnore: true*/ subPath);
@@ -313,10 +313,10 @@ async function evictStaleCache(): Promise<void> {
     }
     for (const file of files) {
       try {
-        const filePath = path.join(subPath, file);
-        const stats = await fs.stat(filePath);
+        const filePath = path.join(/* turbopackIgnore: true */ subPath, file);
+        const stats = await fs.stat(/*turbopackIgnore: true*/ filePath);
         if (now - stats.mtimeMs > EVICT_AGE_MS) {
-          await fs.unlink(filePath);
+          await fs.unlink(/* turbopackIgnore: true */ filePath);
         }
       } catch {
         // File may have been deleted concurrently
@@ -396,7 +396,7 @@ export async function GET(request: NextRequest) {
         .webp({ quality: WEBP_QUALITY })
         .toBuffer();
       await ensureDir(variantPath);
-      await fs.writeFile(variantPath, resized);
+      await fs.writeFile(/* turbopackIgnore: true */ variantPath, resized);
       return new NextResponse(new Uint8Array(resized), {
         headers: {
           'Content-Type': 'image/webp',

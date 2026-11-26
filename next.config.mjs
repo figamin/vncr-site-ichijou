@@ -254,11 +254,18 @@ const nextConfig = {
     ];
   },
   serverExternalPackages: ['sharp'],
+  outputFileTracingExcludes: {
+    '*': [
+      './public/vndb-images/**',
+      './dumps/**',
+      './vndb-stats-backend/**',
+      './.git/**',
+    ],
+  },
   experimental: {
     optimizePackageImports: ['recharts', 'lucide-react', '@dnd-kit/core', '@dnd-kit/sortable', 'react-markdown'],
     cpus: 4,
     serverSourceMaps: false,
-    turbopackPluginRuntimeStrategy: 'workerThreads',
   },
   // Disable source maps in production to avoid leaking source code and reduce build RAM
   productionBrowserSourceMaps: false,
