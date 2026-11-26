@@ -8,6 +8,7 @@ interrupted.
 
 from __future__ import annotations
 
+import gc
 import logging
 import time
 from datetime import date, datetime, timezone
@@ -46,7 +47,8 @@ from app.ingestion.importer import (
 logger = logging.getLogger(__name__)
 
 _UPSERT_BATCH = 500
-_COPY_BATCH = 10_000
+_COPY_BATCH = 25_000
+_STREAM_BATCH = 25_000
 
 
 def _strip_prefix_int(val: str | None, prefix: str) -> int | None:
@@ -469,11 +471,32 @@ async def _sync_visual_novels() -> set[str]:
     return valid_ids
 
 
-async def _copy_staging(table: str, columns: list[str], rows: list[tuple]) -> int:
+async def _stream_to_staging(
+    src,
+    query_sql: str,
+    table: str,
+    columns: list[str],
+    row_fn,
+    *,
+    swap: bool = True,
+) -> int:
+    """Stream query results in partitions into `{table}_staging` to bound memory."""
     await prepare_staging(table)
-    for i in range(0, len(rows), _COPY_BATCH):
-        await copy_bulk_data(f"{table}_staging", columns, rows[i : i + _COPY_BATCH])
-    return len(rows)
+    total = 0
+    result = await src.stream(text(query_sql).execution_options(yield_per=_STREAM_BATCH))
+    async for partition in result.partitions(_STREAM_BATCH):
+        batch: list[tuple] = []
+        for row in partition:
+            item = row_fn(row)
+            if item is not None:
+                batch.append(item)
+        if batch:
+            await copy_bulk_data(f"{table}_staging", columns, batch)
+            total += len(batch)
+    if swap:
+        await swap_staging_to_live(table)
+    logger.info("Streamed %s rows into %s", total, table)
+    return total
 
 
 async def _sync_characters_and_releases(valid_vn_ids: set[str]) -> None:
@@ -538,6 +561,7 @@ async def _sync_characters_and_releases(valid_vn_ids: set[str]) -> None:
             updates = {col: stmt.excluded[col] for col in chunk[0] if col != "id"}
             await dst.execute(stmt.on_conflict_do_update(index_elements=["id"], set_=updates))
         await dst.commit()
+    del char_rows, char_batch
 
     async with vndb_source_session() as src:
         rel_rows = (
@@ -593,166 +617,140 @@ async def _sync_characters_and_releases(valid_vn_ids: set[str]) -> None:
             updates = {col: stmt.excluded[col] for col in chunk[0] if col != "id"}
             await dst.execute(stmt.on_conflict_do_update(index_elements=["id"], set_=updates))
         await dst.commit()
+    del rel_rows, rel_batch
+    gc.collect()
 
-    # Junction tables via atomic staging swaps
+    # Junction tables, votes, users, and ulist streamed via atomic staging swaps
     async with vndb_source_session() as src:
-        vn_tag_rows = (
-            await src.execute(
-                text(
-                    "SELECT tv.vid, CAST(substring(tv.tag FROM 2) AS integer) AS tag_id,"
-                    " AVG(tv.vote) FILTER (WHERE COALESCE(tv.lie, false) = false) AS score,"
-                    " COALESCE(MAX(tv.spoiler), 0) AS spoiler,"
-                    " (COUNT(*) FILTER (WHERE tv.lie = true) >= COUNT(*) FILTER (WHERE COALESCE(tv.lie, false) = false)) AS lie"
-                    " FROM tags_vn tv"
-                    " LEFT JOIN users u ON u.id = tv.uid"
-                    " WHERE COALESCE(tv.ignore, false) = false"
-                    "   AND COALESCE(u.ign_votes, false) = false"
-                    "   AND COALESCE(u.perm_tag, true) = true"
-                    " GROUP BY tv.vid, tv.tag"
-                    " HAVING COUNT(*) FILTER (WHERE COALESCE(tv.lie, false) = false) > 0"
-                )
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT tv.vid, CAST(substring(tv.tag FROM 2) AS integer) AS tag_id,"
+            " AVG(tv.vote) FILTER (WHERE COALESCE(tv.lie, false) = false) AS score,"
+            " COALESCE(MAX(tv.spoiler), 0) AS spoiler,"
+            " (COUNT(*) FILTER (WHERE tv.lie = true) >= COUNT(*) FILTER (WHERE COALESCE(tv.lie, false) = false)) AS lie"
+            " FROM tags_vn tv"
+            " LEFT JOIN users u ON u.id = tv.uid"
+            " WHERE COALESCE(tv.ignore, false) = false"
+            "   AND COALESCE(u.ign_votes, false) = false"
+            "   AND COALESCE(u.perm_tag, true) = true"
+            " GROUP BY tv.vid, tv.tag"
+            " HAVING COUNT(*) FILTER (WHERE COALESCE(tv.lie, false) = false) > 0",
             "vn_tags",
             ["vn_id", "tag_id", "score", "spoiler_level", "lie"],
-            [(r[0], int(r[1]), float(r[2]), int(r[3]), bool(r[4])) for r in vn_tag_rows if r[0] in valid_vn_ids],
+            lambda r: (r[0], int(r[1]), float(r[2]), int(r[3]), bool(r[4])) if r[0] in valid_vn_ids else None,
         )
-        await swap_staging_to_live("vn_tags")
 
-        vn_staff_rows = (
-            await src.execute(
-                text(
-                    "SELECT DISTINCT ON (vs.id, sa.id, vs.role)"
-                    " vs.id, sa.id, vs.aid, vs.role::text, NULLIF(vs.note, '')"
-                    " FROM vn_staff vs JOIN staff_alias sa ON sa.aid = vs.aid"
-                )
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT DISTINCT ON (vs.id, sa.id, vs.role)"
+            " vs.id, sa.id, vs.aid, vs.role::text, NULLIF(vs.note, '')"
+            " FROM vn_staff vs JOIN staff_alias sa ON sa.aid = vs.aid",
             "vn_staff",
             ["vn_id", "staff_id", "aid", "role", "note"],
-            [(r[0], r[1], int(r[2]), r[3], sanitize_text(r[4])[:500] if r[4] else None) for r in vn_staff_rows if r[0] in valid_vn_ids],
+            lambda r: (r[0], r[1], int(r[2]), r[3], sanitize_text(r[4])[:500] if r[4] else None)
+            if r[0] in valid_vn_ids
+            else None,
         )
-        await swap_staging_to_live("vn_staff")
 
-        vn_seiyuu_rows = (
-            await src.execute(
-                text(
-                    "SELECT DISTINCT ON (vs.id, sa.id, vs.cid)"
-                    " vs.id, sa.id, vs.aid, vs.cid, NULLIF(vs.note, '')"
-                    " FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid"
-                )
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT DISTINCT ON (vs.id, sa.id, vs.cid)"
+            " vs.id, sa.id, vs.aid, vs.cid, NULLIF(vs.note, '')"
+            " FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid",
             "vn_seiyuu",
             ["vn_id", "staff_id", "aid", "character_id", "note"],
-            [(r[0], r[1], int(r[2]), r[3], sanitize_text(r[4])[:500] if r[4] else None) for r in vn_seiyuu_rows if r[0] in valid_vn_ids],
+            lambda r: (r[0], r[1], int(r[2]), r[3], sanitize_text(r[4])[:500] if r[4] else None)
+            if r[0] in valid_vn_ids
+            else None,
         )
-        await swap_staging_to_live("vn_seiyuu")
 
-        vn_rel_rows = (
-            await src.execute(text("SELECT id, vid, relation::text, official FROM vn_relations"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, vid, relation::text, official FROM vn_relations",
             "vn_relations",
             ["vn_id", "related_vn_id", "relation", "official"],
-            [(r[0], r[1], r[2], bool(r[3])) for r in vn_rel_rows if r[0] in valid_vn_ids and r[1] in valid_vn_ids],
+            lambda r: (r[0], r[1], r[2], bool(r[3]))
+            if r[0] in valid_vn_ids and r[1] in valid_vn_ids
+            else None,
         )
-        await swap_staging_to_live("vn_relations")
 
-        char_vn_rows = (
-            await src.execute(
-                text("SELECT DISTINCT ON (id, vid) id, vid, role::text, spoil, rid FROM chars_vns")
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT DISTINCT ON (id, vid) id, vid, role::text, spoil, rid FROM chars_vns",
             "character_vn",
             ["character_id", "vn_id", "role", "spoiler_level", "release_id"],
-            [(r[0], r[1], r[2], int(r[3]), r[4]) for r in char_vn_rows if r[0] in valid_char_ids and r[1] in valid_vn_ids],
+            lambda r: (r[0], r[1], r[2], int(r[3]), r[4])
+            if r[0] in valid_char_ids and r[1] in valid_vn_ids
+            else None,
         )
-        await swap_staging_to_live("character_vn")
 
-        char_trait_rows = (
-            await src.execute(
-                text("SELECT id, CAST(substring(tid FROM 2) AS integer), spoil FROM chars_traits WHERE NOT lie")
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, CAST(substring(tid FROM 2) AS integer), spoil FROM chars_traits WHERE NOT lie",
             "character_traits",
             ["character_id", "trait_id", "spoiler_level"],
-            [(r[0], int(r[1]), int(r[2])) for r in char_trait_rows if r[0] in valid_char_ids],
+            lambda r: (r[0], int(r[1]), int(r[2])) if r[0] in valid_char_ids else None,
         )
-        await swap_staging_to_live("character_traits")
 
-        rel_vn_rows = (
-            await src.execute(text("SELECT id, vid, rtype::text FROM releases_vn"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, vid, rtype::text FROM releases_vn",
             "release_vn",
             ["release_id", "vn_id", "rtype"],
-            [(r[0], r[1], r[2]) for r in rel_vn_rows if r[0] in valid_release_ids and r[1] in valid_vn_ids],
+            lambda r: (r[0], r[1], r[2])
+            if r[0] in valid_release_ids and r[1] in valid_vn_ids
+            else None,
         )
-        await swap_staging_to_live("release_vn")
 
-        rel_prod_rows = (
-            await src.execute(text("SELECT id, pid, developer, publisher FROM releases_producers"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, pid, developer, publisher FROM releases_producers",
             "release_producers",
             ["release_id", "producer_id", "developer", "publisher"],
-            [(r[0], r[1], bool(r[2]), bool(r[3])) for r in rel_prod_rows if r[0] in valid_release_ids],
+            lambda r: (r[0], r[1], bool(r[2]), bool(r[3])) if r[0] in valid_release_ids else None,
         )
-        await swap_staging_to_live("release_producers")
 
-        rel_plat_rows = (
-            await src.execute(text("SELECT id, platform::text FROM releases_platforms"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, platform::text FROM releases_platforms",
             "release_platforms",
             ["release_id", "platform"],
-            [(r[0], r[1]) for r in rel_plat_rows if r[0] in valid_release_ids],
+            lambda r: (r[0], r[1]) if r[0] in valid_release_ids else None,
         )
-        await swap_staging_to_live("release_platforms")
 
-        rel_media_rows = (
-            await src.execute(
-                text("SELECT DISTINCT ON (id, medium) id, medium::text, qty FROM releases_media")
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT DISTINCT ON (id, medium) id, medium::text, qty FROM releases_media",
             "release_media",
             ["release_id", "medium", "quantity"],
-            [(r[0], r[1], int(r[2])) for r in rel_media_rows if r[0] in valid_release_ids],
+            lambda r: (r[0], r[1], int(r[2])) if r[0] in valid_release_ids else None,
         )
-        await swap_staging_to_live("release_media")
 
-        ext_master_rows = (
-            await src.execute(text("SELECT id, site::text, value FROM extlinks"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, site::text, value FROM extlinks",
             "extlinks_master",
             ["id", "site", "value"],
-            [(int(r[0]), r[1], sanitize_text(r[2])) for r in ext_master_rows],
+            lambda r: (int(r[0]), r[1], sanitize_text(r[2])),
+            swap=False,
         )
 
-        rel_ext_rows = (
-            await src.execute(text("SELECT id, link FROM releases_extlinks"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, link FROM releases_extlinks",
             "release_extlinks",
             ["release_id", "link_id"],
-            [(r[0], int(r[1])) for r in rel_ext_rows if r[0] in valid_release_ids],
+            lambda r: (r[0], int(r[1])) if r[0] in valid_release_ids else None,
+            swap=False,
         )
 
-        vn_ext_rows = (
-            await src.execute(text("SELECT id, link FROM vn_extlinks"))
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, link FROM vn_extlinks",
             "vn_extlinks",
             ["vn_id", "link_id"],
-            [(r[0], int(r[1])) for r in vn_ext_rows if r[0] in valid_vn_ids],
+            lambda r: (r[0], int(r[1])) if r[0] in valid_vn_ids else None,
+            swap=False,
         )
         await swap_staging_to_live(["extlinks_master", "release_extlinks", "vn_extlinks"])
 
@@ -760,80 +758,72 @@ async def _sync_characters_and_releases(valid_vn_ids: set[str]) -> None:
             f"{col}::text" if col not in ("id", "enwiki", "jawiki") else col
             for col in WIKIDATA_COLUMNS
         )
-        wd_rows = (await src.execute(text(f"SELECT {wd_cols_sql} FROM wikidata"))).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            f"SELECT {wd_cols_sql} FROM wikidata",
             "wikidata_entries",
             WIKIDATA_COLUMNS,
-            [tuple(int(r[0]) if i == 0 else r[i] for i in range(len(WIKIDATA_COLUMNS))) for r in wd_rows],
+            lambda r: tuple(int(r[0]) if i == 0 else r[i] for i in range(len(WIKIDATA_COLUMNS))),
         )
-        await swap_staging_to_live("wikidata_entries")
 
-        # Votes, users, and ulist tables
-        vote_rows = (
-            await src.execute(
-                text(
-                    "SELECT uv.vid, substring(uv.uid FROM 2), uv.vote, uv.vote_date"
-                    " FROM ulist_vns uv"
-                    " JOIN users u ON u.id = uv.uid"
-                    " WHERE uv.vote IS NOT NULL AND NOT u.ign_votes"
-                )
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT uv.vid, substring(uv.uid FROM 2), uv.vote, uv.vote_date"
+            " FROM ulist_vns uv"
+            " JOIN users u ON u.id = uv.uid"
+            " WHERE uv.vote IS NOT NULL AND NOT u.ign_votes",
             "global_votes",
             ["vn_id", "user_hash", "vote", "date"],
-            [(r[0], r[1], int(r[2]), r[3]) for r in vote_rows if r[0] in valid_vn_ids],
+            lambda r: (r[0], r[1], int(r[2]), r[3]) if r[0] in valid_vn_ids else None,
         )
-        await swap_staging_to_live("global_votes")
 
-        user_rows = (
-            await src.execute(
-                text("SELECT id, COALESCE(username, id), ign_votes FROM users WHERE username IS NOT NULL")
-            )
-        ).all()
-        await _copy_staging(
+        await _stream_to_staging(
+            src,
+            "SELECT id, COALESCE(username, id), ign_votes FROM users WHERE username IS NOT NULL",
             "vndb_users",
             ["uid", "username", "ign_votes"],
-            [(r[0], sanitize_text(r[1])[:100], bool(r[2])) for r in user_rows],
+            lambda r: (r[0], sanitize_text(r[1])[:100], bool(r[2])),
         )
-        await swap_staging_to_live("vndb_users")
 
-        ulist_rows = (
-            await src.execute(
-                text(
-                    "SELECT uid, vid, EXTRACT(EPOCH FROM added)::bigint,"
-                    " EXTRACT(EPOCH FROM lastmod)::bigint,"
-                    " EXTRACT(EPOCH FROM vote_date)::bigint,"
-                    " vote, started, finished, NULLIF(notes, ''), labels"
-                    " FROM ulist_vns"
-                )
-            )
-        ).all()
-        vn_list_tuples: list[tuple] = []
-        label_tuples: list[tuple] = []
-        for r in ulist_rows:
-            if r[1] not in valid_vn_ids:
-                continue
-            vn_list_tuples.append(
-                (r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], sanitize_text(r[8]) if r[8] else None)
-            )
-            for lbl in r[9] or ():
-                label_tuples.append((r[0], r[1], int(lbl)))
         await prepare_staging("ulist_vns")
         await prepare_staging("ulist_labels")
-        for i in range(0, len(vn_list_tuples), _COPY_BATCH):
-            await copy_bulk_data(
-                "ulist_vns_staging",
-                ["uid", "vid", "added", "lastmod", "vote_date", "vote", "started", "finished", "notes"],
-                vn_list_tuples[i : i + _COPY_BATCH],
-            )
-        for i in range(0, len(label_tuples), _COPY_BATCH):
-            await copy_bulk_data(
-                "ulist_labels_staging",
-                ["uid", "vid", "label"],
-                label_tuples[i : i + _COPY_BATCH],
-            )
+        ulist_total = 0
+        labels_total = 0
+        ulist_result = await src.stream(
+            text(
+                "SELECT uid, vid, EXTRACT(EPOCH FROM added)::bigint,"
+                " EXTRACT(EPOCH FROM lastmod)::bigint,"
+                " EXTRACT(EPOCH FROM vote_date)::bigint,"
+                " vote, started, finished, NULLIF(notes, ''), labels"
+                " FROM ulist_vns"
+            ).execution_options(yield_per=_STREAM_BATCH)
+        )
+        async for partition in ulist_result.partitions(_STREAM_BATCH):
+            vn_batch: list[tuple] = []
+            lbl_batch: list[tuple] = []
+            for r in partition:
+                if r[1] not in valid_vn_ids:
+                    continue
+                vn_batch.append(
+                    (r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], sanitize_text(r[8]) if r[8] else None)
+                )
+                for lbl in r[9] or ():
+                    lbl_batch.append((r[0], r[1], int(lbl)))
+            if vn_batch:
+                await copy_bulk_data(
+                    "ulist_vns_staging",
+                    ["uid", "vid", "added", "lastmod", "vote_date", "vote", "started", "finished", "notes"],
+                    vn_batch,
+                )
+                ulist_total += len(vn_batch)
+            for i in range(0, len(lbl_batch), _COPY_BATCH):
+                chunk = lbl_batch[i : i + _COPY_BATCH]
+                await copy_bulk_data("ulist_labels_staging", ["uid", "vid", "label"], chunk)
+                labels_total += len(chunk)
         await swap_staging_to_live(["ulist_vns", "ulist_labels"])
+        logger.info("Streamed %s ulist_vns rows and %s ulist_labels rows", ulist_total, labels_total)
+
+    gc.collect()
 
 
 async def sync_from_vndb_pg(run_id: int | None = None) -> dict[str, Any]:
