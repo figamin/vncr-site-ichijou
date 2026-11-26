@@ -180,6 +180,36 @@ export async function getTagForMetadata(
 }
 
 /**
+ * Fetch ErogameScape POV metadata server-side for page metadata & JSON-LD.
+ */
+export async function getPovForMetadata(
+  povId: string
+): Promise<{
+  id: number;
+  title: string;
+  system_title?: string | null;
+  system_group?: string | null;
+  comment?: string | null;
+  vn_count?: number;
+} | null> {
+  const backendUrl = getBackendUrlOptional();
+  if (!backendUrl) return null;
+
+  try {
+    const res = await fetch(`${backendUrl}/api/v1/stats/pov/${povId}`, {
+      next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.pov || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch a leaderboard's descriptive fields server-side, for page metadata.
  *
  * Reads the catalogue rather than the board itself: the catalogue is one small cached

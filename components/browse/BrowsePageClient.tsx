@@ -80,6 +80,10 @@ const BrowseProducerTab = dynamic(
   () => import('./BrowseProducerTab').then(m => ({ default: m.BrowseProducerTab })),
   { loading: TabLoadingFallback, ssr: false }
 );
+const BrowsePovsTab = dynamic(
+  () => import('./BrowsePovsTab').then(m => ({ default: m.BrowsePovsTab })),
+  { loading: TabLoadingFallback, ssr: false }
+);
 
 // Preload tab chunks on hover: raw imports trigger chunk download before click
 const TAB_PRELOADERS: Partial<Record<BrowseTab, () => void>> = {
@@ -88,6 +92,7 @@ const TAB_PRELOADERS: Partial<Record<BrowseTab, () => void>> = {
   staff: () => { import('./BrowseStaffTab'); },
   seiyuu: () => { import('./BrowseSeiyuuTab'); },
   producers: () => { import('./BrowseProducerTab'); },
+  povs: () => { import('./BrowsePovsTab'); },
 };
 
 // Items per page based on grid size to ensure complete rows at xl breakpoint
@@ -196,6 +201,7 @@ const TAB_TITLES: Record<BrowseTab, string> = {
   staff: 'Browse Staff',
   seiyuu: 'Browse Seiyuu',
   producers: 'Browse Producers',
+  povs: 'Browse EGS POVs',
 };
 
 // Props for SSR support
@@ -272,6 +278,7 @@ export default function BrowsePageClient({ initialData, initialSearchParams, ser
   const [staffTotal, setStaffTotal] = useState<number | null>(null);
   const [seiyuuTotal, setSeiyuuTotal] = useState<number | null>(null);
   const [producersTotal, setProducersTotal] = useState<number | null>(null);
+  const [povsTotal, setPovsTotal] = useState<number | null>(null);
   const [pages, setPages] = useState(initialData?.pages ?? 0);
   const [queryTime, setQueryTime] = useState<number | undefined>(initialData?.query_time);
   const [displayedQueryTime, setDisplayedQueryTime] = useState<number | undefined>(initialData?.query_time); // Stable display value
@@ -1035,6 +1042,10 @@ export default function BrowsePageClient({ initialData, initialSearchParams, ser
       fetchedEntityTotals.current.add('traits');
       fetchWithCache('vndb_traits_total_count', setTraitsTotal, () => vndbStatsApi.browseTraits({ limit: 1 }));
     }
+    if (activeTab === 'povs' && !fetchedEntityTotals.current.has('povs')) {
+      fetchedEntityTotals.current.add('povs');
+      fetchWithCache('vndb_povs_total_count', setPovsTotal, () => vndbStatsApi.browsePovs({ limit: 1 }));
+    }
 
     // Staff/Seiyuu/Producers: prefetch first page (slow queries - cache in SWR)
     // These match the default params in each tab component
@@ -1511,6 +1522,7 @@ export default function BrowsePageClient({ initialData, initialSearchParams, ser
             {activeTab === 'staff' && `Browse the database of ${staffTotal !== null ? staffTotal.toLocaleString() : '...'} staff members`}
             {activeTab === 'seiyuu' && `Browse the database of ${seiyuuTotal !== null ? seiyuuTotal.toLocaleString() : '...'} voice actors`}
             {activeTab === 'producers' && `Browse the database of ${producersTotal !== null ? producersTotal.toLocaleString() : '...'} producers`}
+            {activeTab === 'povs' && `Browse ${povsTotal !== null ? povsTotal.toLocaleString() : '...'} ErogameScape POVs`}
           </p>
         </div>
 
@@ -1523,6 +1535,7 @@ export default function BrowsePageClient({ initialData, initialSearchParams, ser
         {activeTab === 'staff' && <BrowseStaffTab isActive />}
         {activeTab === 'seiyuu' && <BrowseSeiyuuTab isActive />}
         {activeTab === 'producers' && <BrowseProducerTab isActive />}
+        {activeTab === 'povs' && <BrowsePovsTab isActive />}
 
         {/* VNDB Attribution for entity tabs (non-VN) */}
         {activeTab !== 'novels' && <VNDBAttribution />}

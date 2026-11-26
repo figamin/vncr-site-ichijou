@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from '@/components/Link';
 import { Music } from 'lucide-react';
 import type { VNExternalDetail } from '@/lib/vndb-stats-api';
 
@@ -69,6 +70,9 @@ export function VNExternalCommunity({ external }: VNExternalCommunityProps) {
                   <span className="tab-count">{spoilerPovCount}</span>
                 </button>
               )}
+              <Link href="/stats/pov/" className="sec-more">
+                All POVs <span aria-hidden>→</span>
+              </Link>
               {egs?.url && (
                 <a
                   href={egs.url}
@@ -86,9 +90,10 @@ export function VNExternalCommunity({ external }: VNExternalCommunityProps) {
             <>
               <div className="flex flex-wrap gap-1.5">
                 {visiblePovs.map((pov) => (
-                  <span
+                  <Link
                     key={pov.id}
-                    className={`vn-chip${pov.spoiler ? ' vn-chip--held' : ''}`}
+                    href={`/stats/pov/${pov.id}`}
+                    className={`vn-chip vn-chip--pick${pov.spoiler ? ' vn-chip--held' : ''}`}
                     title={`Rank ${pov.rank} · ${pov.count.toLocaleString()} votes${pov.spoiler ? ' (Spoiler)' : ''}`}
                   >
                     <span className="font-mono text-[10px] font-bold text-[color:var(--ai)] mr-1">
@@ -99,7 +104,7 @@ export function VNExternalCommunity({ external }: VNExternalCommunityProps) {
                       {pov.count.toLocaleString()}
                     </span>
                     {pov.spoiler && <span className="font-mono text-xs ml-0.5">!</span>}
-                  </span>
+                  </Link>
                 ))}
               </div>
               {filteredPovs.length > 15 && !showAllPovs && (

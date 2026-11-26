@@ -691,6 +691,132 @@ class TraitVNsWithTagsResponse(BaseModel):
     pages: int
 
 
+# ============ ErogameScape POV Schemas ============
+
+class PovGroupCount(BaseModel):
+    """POV system group with count of matching POVs."""
+    group: str
+    count: int
+
+
+class BrowsePovItem(BaseModel):
+    """ErogameScape POV entry in browse/directory listings."""
+    id: int
+    title: str
+    system_title: str | None = None
+    system_group: str | None = None
+    comment: str | None = None
+    furigana: str | None = None
+    spoiler: bool = False
+    user_count: int = 0
+    egs_game_count: int = 0
+    vn_count: int = 0
+    total_votes: int = 0
+    rank_a: int = 0
+    rank_b: int = 0
+    rank_c: int = 0
+    avg_egs_median: float | None = None
+
+
+class BrowsePovsResponse(BaseModel):
+    """Paginated browse results for ErogameScape POVs."""
+    items: list[BrowsePovItem]
+    total: int
+    page: int
+    pages: int
+    groups: list[PovGroupCount] = []
+
+
+class PovDetailResponse(BaseModel):
+    """Detailed ErogameScape POV metadata."""
+    id: int
+    title: str
+    system_title: str | None = None
+    system_group: str | None = None
+    comment: str | None = None
+    furigana: str | None = None
+    spoiler: bool = False
+    user_count: int = 0
+    egs_game_count: int = 0
+    vn_count: int = 0
+    total_votes: int = 0
+    rank_a: int = 0
+    rank_b: int = 0
+    rank_c: int = 0
+    url: str
+
+
+class PovSiblingItem(BaseModel):
+    """Other POV within the same ErogameScape system group."""
+    id: int
+    title: str
+    system_title: str | None = None
+    spoiler: bool = False
+    vn_count: int = 0
+    total_votes: int = 0
+
+
+class PovStatsResponse(BaseModel):
+    """Aggregate VNDB + ErogameScape statistics for all VNs carrying a POV."""
+    pov: PovDetailResponse
+    average_rating: float
+    total_votes: int
+    total_vns: int
+    egs_average_median: float | None = None
+    egs_rated_games: int = 0
+    egs_median_distribution: dict[str, int] = {}
+    score_distribution: dict[str, int]
+    score_distribution_jp: dict[str, int] | None = None
+    release_year_distribution: dict[str, int]
+    release_year_with_ratings: list[YearWithRating]
+    length_distribution: dict[str, CategoryStats]
+    age_rating_distribution: dict[str, CategoryStats]
+    group_povs: list[PovSiblingItem] = []
+    last_updated: datetime | None = None
+
+
+class PovVNItem(VNWithTags):
+    """Visual novel in a POV's game list with EGS POV vote breakdown."""
+    pov_votes: int = 0
+    pov_rank: str = "A"
+    pov_rank_a: int = 0
+    pov_rank_b: int = 0
+    pov_rank_c: int = 0
+    egs_id: int
+    egs_median: int | None = None
+    egs_count: int | None = None
+
+
+class PovVNsResponse(BaseModel):
+    """Paginated VNs carrying a specific ErogameScape POV."""
+    pov: PovDetailResponse
+    vns: list[PovVNItem]
+    total: int
+    page: int
+    pages: int
+
+
+class SimilarPovItem(BaseModel):
+    """POV that frequently co-occurs with the target POV on EGS."""
+    id: int
+    title: str
+    system_title: str | None = None
+    system_group: str | None = None
+    spoiler: bool = False
+    shared_game_count: int
+    shared_vn_count: int
+    similarity: float
+
+
+class PovRelatedTagItem(BaseModel):
+    """VNDB tag strongly associated with VNs carrying this POV."""
+    id: str
+    name: str
+    category: str | None = None
+    vn_count: int
+    frequency: float
+
+
 # ============ Producer Detail Schemas ============
 
 class ProducerDetailResponse(BaseModel):

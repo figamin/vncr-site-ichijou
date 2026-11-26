@@ -28,6 +28,7 @@ const MORE_MENU = [
 
   { name: 'Discovery', href: '/find', group: 'Find a VN' },
   { name: 'Recommendations', href: '/recommendations', group: 'Find a VN' },
+  { name: 'EGS POVs', href: '/stats/pov', group: 'Find a VN' },
   { name: 'Random', href: '/random', group: 'Find a VN' },
   { name: 'Roulette', href: '/roulette', group: 'Find a VN' },
 

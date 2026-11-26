@@ -19,10 +19,10 @@ interface CategoryOption {
 }
 
 interface VNListDropdownProps {
-  /** Tag ID (e.g., "g106") or Trait ID (e.g., "i123") */
+  /** Tag ID (e.g., "g106"), Trait ID (e.g., "i123"), or EGS POV ID (e.g., "57") */
   entityId: string;
-  /** Whether this is a tag or trait */
-  entityType: 'tag' | 'trait';
+  /** Whether this is a tag, trait, or EGS POV */
+  entityType: 'tag' | 'trait' | 'pov';
   /** The type of category this dropdown filters by */
   categoryType: CategoryType;
   /** Available category options with their counts */
@@ -86,6 +86,14 @@ export function VNListDropdown({
 
       if (entityType === 'tag') {
         response = await vndbStatsApi.getTagVNsByCategory(
+          entityId,
+          categoryType,
+          categoryValue,
+          PAGE_SIZE,
+          currentOffset
+        );
+      } else if (entityType === 'pov') {
+        response = await vndbStatsApi.getPovVNsByCategory(
           entityId,
           categoryType,
           categoryValue,

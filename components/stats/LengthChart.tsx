@@ -186,8 +186,8 @@ export function LengthChart({ distribution, entityId, entityType, entityName, to
         </div>
       </div>
 
-      {/* VN List Dropdown (only for tag/trait which have backend category endpoints) */}
-      {entityId && entityType && (entityType === 'tag' || entityType === 'trait') && (
+      {/* VN List Dropdown (only for tag/trait/pov which have backend category endpoints) */}
+      {entityId && entityType && (entityType === 'tag' || entityType === 'trait' || entityType === 'pov') && (
         <VNListDropdown
           entityId={entityId}
           entityType={entityType}

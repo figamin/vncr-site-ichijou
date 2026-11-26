@@ -9,6 +9,8 @@ import {
   BrowseSeiyuuResponse,
   BrowseProducerParams,
   BrowseProducersResponse,
+  BrowsePovParams,
+  BrowsePovsResponse,
   SimilarCharacter,
   type VNVoteStats as VNVoteStatsData,
   type VNExternalDetail,
@@ -173,6 +175,17 @@ export function useBrowseProducers(params: BrowseProducerParams = {}, enabled = 
   return useSWR<BrowseProducersResponse>(
     enabled ? ['browseProducers', JSON.stringify(params)] : null,
     () => vndbStatsApi.browseProducers(params),
+    { ...DEFAULT_SWR_OPTIONS, keepPreviousData: true }
+  );
+}
+
+/**
+ * Hook for browsing ErogameScape POVs with caching
+ */
+export function useBrowsePovs(params: BrowsePovParams = {}, enabled = true) {
+  return useSWR<BrowsePovsResponse>(
+    enabled ? ['browsePovs', JSON.stringify(params)] : null,
+    () => vndbStatsApi.browsePovs(params),
     { ...DEFAULT_SWR_OPTIONS, keepPreviousData: true }
   );
 }

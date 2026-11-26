@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-EntityType = Literal["tags", "traits", "staff", "seiyuu", "producers"]
+EntityType = Literal["tags", "traits", "staff", "seiyuu", "producers", "povs"]
 
 
 @router.get("/random/{entity_type}")
@@ -30,7 +30,13 @@ async def random_entity(
     entity_type: EntityType,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a random entity ID. entity_type: tags, traits, staff, seiyuu, producers."""
+    """Get a random entity ID. entity_type: tags, traits, staff, seiyuu, producers, povs."""
+    if entity_type == "povs":
+        from app.services.egs_pov_service import get_random_pov_id
+
+        pov_id = await get_random_pov_id(db)
+        return {"id": str(pov_id) if pov_id is not None else None}
+
     if entity_type == "tags":
         query = select(Tag.id).where(Tag.vn_count > 0).order_by(func.random()).limit(1)
     elif entity_type == "traits":
@@ -680,4 +686,32 @@ async def browse_producers(
         total=total,
         page=page,
         pages=(total + limit - 1) // limit if total > 0 else 1,
+    )
+
+
+# ============ ErogameScape POVs ============
+
+@router.get("/povs", response_model=schemas.BrowsePovsResponse)
+async def browse_povs(
+    q: str | None = Query(default=None, description="Search POV title, system title, furigana, group, or description"),
+    group: str | None = Query(default=None, description="Filter by ErogameScape system_group"),
+    include_spoilers: bool = Query(default=False, description="Include spoiler POVs (netabare=true)"),
+    sort: str = Query(default="vn_count", description="Sort: vn_count, total_votes, egs_game_count, user_count, avg_egs_median, title"),
+    sort_order: str = Query(default="desc", description="Sort order: asc, desc"),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=250),
+    db: AsyncSession = Depends(get_db),
+):
+    """Browse and search ErogameScape POVs with group counts and pagination."""
+    from app.services.egs_pov_service import list_povs
+
+    return await list_povs(
+        db,
+        q=q,
+        group=group,
+        include_spoilers=include_spoilers,
+        sort=sort,
+        sort_order=sort_order,
+        page=page,
+        limit=limit,
     )

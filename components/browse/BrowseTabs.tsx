@@ -1,6 +1,6 @@
 'use client';
 
-export type BrowseTab = 'novels' | 'tags' | 'traits' | 'staff' | 'seiyuu' | 'producers';
+export type BrowseTab = 'novels' | 'tags' | 'traits' | 'staff' | 'seiyuu' | 'producers' | 'povs';
 
 const TABS: { id: BrowseTab; label: string }[] = [
   { id: 'novels', label: 'Visual Novels' },
@@ -9,6 +9,7 @@ const TABS: { id: BrowseTab; label: string }[] = [
   { id: 'staff', label: 'Staff' },
   { id: 'seiyuu', label: 'Seiyuu' },
   { id: 'producers', label: 'Producers' },
+  { id: 'povs', label: 'EGS POVs' },
 ];
 
 interface BrowseTabsProps {

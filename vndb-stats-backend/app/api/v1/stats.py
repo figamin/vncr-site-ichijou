@@ -886,6 +886,145 @@ async def get_tag_parents(
     return parents
 
 
+# ============ ErogameScape POV Endpoints ============
+
+def _parse_pov_id(pov_id: str) -> int:
+    match = re.match(r'^p?(\d+)$', pov_id)
+    if not match:
+        raise HTTPException(status_code=400, detail="Invalid POV ID format")
+    return int(match.group(1))
+
+
+@router.get("/pov/{pov_id}", response_model=schemas.PovStatsResponse)
+async def get_pov_stats(
+    pov_id: str,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    nocache: bool = False,
+):
+    """Get aggregate VNDB & ErogameScape statistics for all VNs with a POV."""
+    from app.services.egs_pov_service import get_pov_stats as fetch_pov_stats
+
+    response.headers["Cache-Control"] = f"public, max-age={CACHE_TAG_STATS}"
+    numeric_pov_id = _parse_pov_id(pov_id)
+
+    if nocache and not await is_admin_request(request):
+        nocache = False
+
+    result = await fetch_pov_stats(numeric_pov_id, db, force_refresh=nocache)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"POV {pov_id} not found")
+
+    etag = generate_etag(result.model_dump())
+    response.headers["ETag"] = etag
+    if check_etag_match(request, etag):
+        return Response(status_code=304, headers={"ETag": etag})
+
+    return result
+
+
+@router.get("/pov/{pov_id}/vns", response_model=schemas.PovVNsResponse)
+async def get_pov_vns(
+    pov_id: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    limit: int = Query(24, ge=1, le=100),
+    sort: str = Query("pov_votes"),
+    rank: str | None = Query(default=None),
+    olang: str | None = Query(default=None),
+):
+    """Get paginated VNs for a POV with EGS POV vote breakdown and VNDB tags."""
+    from app.services.egs_pov_service import get_pov_vns as fetch_pov_vns
+
+    response.headers["Cache-Control"] = f"public, max-age={CACHE_TAG_STATS}"
+    numeric_pov_id = _parse_pov_id(pov_id)
+    if sort not in ("pov_votes", "rating", "egs_median", "votecount", "released"):
+        sort = "pov_votes"
+
+    result = await fetch_pov_vns(
+        numeric_pov_id,
+        db,
+        page=page,
+        limit=limit,
+        sort=sort,
+        rank=rank,
+        olang=olang,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail=f"POV {pov_id} not found")
+    return result
+
+
+@router.get("/pov/{pov_id}/vns-by-category", response_model=schemas.VNListByCategoryResponse)
+async def get_pov_vns_by_category(
+    pov_id: str,
+    category_type: str,
+    category_value: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    limit: int = 20,
+    offset: int = 0,
+):
+    """Get VNs with a specific POV filtered by chart category."""
+    from app.services.egs_pov_service import get_pov_vns_by_category as fetch_pov_vns_by_cat
+
+    response.headers["Cache-Control"] = f"public, max-age={CACHE_TAG_STATS}"
+    numeric_pov_id = _parse_pov_id(pov_id)
+
+    valid_types = ["release_year", "length", "score", "age_rating"]
+    if category_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid category_type. Must be one of: {', '.join(valid_types)}",
+        )
+
+    limit = max(1, min(100, limit))
+    offset = max(0, offset)
+
+    vns, total = await fetch_pov_vns_by_cat(
+        numeric_pov_id, db, category_type, category_value, limit=limit, offset=offset
+    )
+    return schemas.VNListByCategoryResponse(
+        vns=[schemas.VNSummary(**vn) for vn in vns],
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(vns) < total,
+    )
+
+
+@router.get("/pov/{pov_id}/similar", response_model=list[schemas.SimilarPovItem])
+async def get_similar_povs(
+    pov_id: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(30, ge=1, le=50),
+):
+    """Get POVs that frequently co-occur with the target POV on ErogameScape."""
+    from app.services.egs_pov_service import get_similar_povs as fetch_similar_povs
+
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    numeric_pov_id = _parse_pov_id(pov_id)
+    return await fetch_similar_povs(numeric_pov_id, db, limit=limit)
+
+
+@router.get("/pov/{pov_id}/tags", response_model=list[schemas.PovRelatedTagItem])
+async def get_pov_related_tags(
+    pov_id: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(30, ge=1, le=50),
+):
+    """Get VNDB tags strongly associated with VNs carrying this POV."""
+    from app.services.egs_pov_service import get_pov_related_tags as fetch_pov_tags
+
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    numeric_pov_id = _parse_pov_id(pov_id)
+    return await fetch_pov_tags(numeric_pov_id, db, limit=limit)
+
+
 @router.get("/trait/{trait_id}/children")
 async def get_trait_children(
     trait_id: str,

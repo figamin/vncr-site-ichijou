@@ -8,7 +8,7 @@
  * corresponding filtered view on the browse page.
  */
 
-export type EntityType = 'tag' | 'trait' | 'staff' | 'seiyuu' | 'developer' | 'publisher' | 'producer';
+export type EntityType = 'tag' | 'trait' | 'pov' | 'staff' | 'seiyuu' | 'developer' | 'publisher' | 'producer';
 
 /**
  * Build base URLSearchParams with entity filter.
@@ -71,7 +71,8 @@ export function getLengthFilterUrl(
   entityId: string,
   lengthKey: string,
   entityName?: string
-): string {
+): string | null {
+  if (entityType === 'pov') return null;
   const lengthValue = LENGTH_KEYS[lengthKey];
   if (!lengthValue) return `/browse`;
 
@@ -90,7 +91,8 @@ export function getScoreFilterUrl(
   entityId: string,
   score: number,
   entityName?: string
-): string {
+): string | null {
+  if (entityType === 'pov') return null;
   if (score < 1 || score > 10) return `/browse`;
 
   const params = buildEntityParams(entityType, entityId, entityName);
@@ -121,7 +123,8 @@ export function getAgeRatingFilterUrl(
   entityId: string,
   ageKey: string,
   entityName?: string
-): string {
+): string | null {
+  if (entityType === 'pov') return null;
   const ageValue = AGE_RATING_KEYS[ageKey];
   if (!ageValue) return `/browse`;
 
@@ -140,7 +143,8 @@ export function getReleaseYearFilterUrl(
   entityId: string,
   year: number,
   entityName?: string
-): string {
+): string | null {
+  if (entityType === 'pov') return null;
   const params = buildEntityParams(entityType, entityId, entityName);
   params.set('year_min', String(year));
   params.set('year_max', String(year));

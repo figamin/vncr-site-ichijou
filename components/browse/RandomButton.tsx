@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Shuffle, Loader2 } from 'lucide-react';
 import { vndbStatsApi } from '@/lib/vndb-stats-api';
 
-type EntityType = 'vn' | 'tags' | 'traits' | 'staff' | 'seiyuu' | 'producers';
+type EntityType = 'vn' | 'tags' | 'traits' | 'staff' | 'seiyuu' | 'producers' | 'povs';
 
 const LINK_MAP: Record<EntityType, (id: string) => string> = {
   vn: (id) => `/vn/${id}/`,
@@ -14,6 +14,7 @@ const LINK_MAP: Record<EntityType, (id: string) => string> = {
   staff: (id) => `/stats/staff/${id}/`,
   seiyuu: (id) => `/stats/seiyuu/${id}/`,
   producers: (id) => `/stats/producer/${id}/`,
+  povs: (id) => `/stats/pov/${id}/`,
 };
 
 export function RandomButton({ entityType }: { entityType: EntityType }) {

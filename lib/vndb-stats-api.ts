@@ -142,6 +142,150 @@ export interface YearWithRating {
   jp_count?: number;  // Japanese-original VN count (olang='ja')
 }
 
+// ============ ErogameScape POV Types ============
+
+export interface PovGroupCount {
+  group: string;
+  count: number;
+}
+
+export interface BrowsePovItem {
+  id: number;
+  title: string;
+  system_title?: string | null;
+  system_group?: string | null;
+  comment?: string | null;
+  furigana?: string | null;
+  spoiler: boolean;
+  user_count: number;
+  egs_game_count: number;
+  vn_count: number;
+  total_votes: number;
+  rank_a: number;
+  rank_b: number;
+  rank_c: number;
+  avg_egs_median?: number | null;
+}
+
+export interface BrowsePovParams {
+  q?: string;
+  group?: string;
+  include_spoilers?: boolean;
+  sort?: 'vn_count' | 'total_votes' | 'egs_game_count' | 'user_count' | 'avg_egs_median' | 'title';
+  sort_order?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export interface BrowsePovsResponse {
+  items: BrowsePovItem[];
+  total: number;
+  page: number;
+  pages: number;
+  groups: PovGroupCount[];
+}
+
+export interface PovDetail {
+  id: number;
+  title: string;
+  system_title?: string | null;
+  system_group?: string | null;
+  comment?: string | null;
+  furigana?: string | null;
+  spoiler: boolean;
+  user_count: number;
+  egs_game_count: number;
+  vn_count: number;
+  total_votes: number;
+  rank_a: number;
+  rank_b: number;
+  rank_c: number;
+  url: string;
+}
+
+export interface PovSiblingItem {
+  id: number;
+  title: string;
+  system_title?: string | null;
+  spoiler: boolean;
+  vn_count: number;
+  total_votes: number;
+}
+
+export interface PovStatsData {
+  pov: PovDetail;
+  average_rating: number;
+  total_votes: number;
+  total_vns: number;
+  egs_average_median?: number | null;
+  egs_rated_games: number;
+  egs_median_distribution: Record<string, number>;
+  score_distribution: Record<string, number>;
+  score_distribution_jp?: Record<string, number>;
+  release_year_distribution: Record<string, number>;
+  release_year_with_ratings: YearWithRating[];
+  length_distribution: Record<string, CategoryStats>;
+  age_rating_distribution: Record<string, CategoryStats>;
+  group_povs: PovSiblingItem[];
+  last_updated?: string;
+}
+
+export interface PovVN {
+  id: string;
+  title: string;
+  title_jp?: string | null;
+  title_romaji?: string | null;
+  image_url?: string | null;
+  image_sexual?: number | null;
+  released?: string | null;
+  rating?: number | null;
+  votecount: number;
+  olang?: string | null;
+  tags: Array<{
+    id: string;
+    name: string;
+    score: number;
+    vn_count?: number;
+    spoiler?: number;
+    category?: string;
+  }>;
+  pov_votes: number;
+  pov_rank: string;
+  pov_rank_a: number;
+  pov_rank_b: number;
+  pov_rank_c: number;
+  egs_id: number;
+  egs_median?: number | null;
+  egs_count?: number | null;
+}
+
+export interface PovVNsResponse {
+  pov: PovDetail;
+  vns: PovVN[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface SimilarPov {
+  id: number;
+  title: string;
+  system_title?: string | null;
+  system_group?: string | null;
+  spoiler: boolean;
+  shared_game_count: number;
+  shared_vn_count: number;
+  similarity: number;
+}
+
+export interface PovRelatedTag {
+  id: string;
+  name: string;
+  category?: string | null;
+  vn_count: number;
+  frequency: number;
+}
+
 // ============ User Stats Breakdown Types ============
 
 export interface ProducerBreakdown {
@@ -2896,6 +3040,94 @@ class VNDBStatsAPI {
     return [];
   }
 
+  // ============ ErogameScape POV Methods ============
+
+  async browsePovs(params: BrowsePovParams = {}): Promise<BrowsePovsResponse> {
+    const query = new URLSearchParams();
+    if (params.q) query.set('q', params.q);
+    if (params.group) query.set('group', params.group);
+    if (params.include_spoilers) query.set('include_spoilers', 'true');
+    if (params.sort) query.set('sort', params.sort);
+    if (params.sort_order) query.set('sort_order', params.sort_order);
+    if (params.page) query.set('page', String(params.page));
+    if (params.limit) query.set('limit', String(params.limit));
+
+    const qs = query.toString();
+    return await this.fetch<BrowsePovsResponse>(`/api/v1/browse/povs${qs ? `?${qs}` : ''}`);
+  }
+
+  async getPovStats(povId: string | number, options?: { nocache?: boolean }): Promise<PovStatsData | null> {
+    const nocache = options?.nocache ? '?nocache=1' : '';
+    try {
+      return await this.fetch<PovStatsData>(`/api/v1/stats/pov/${povId}${nocache}`);
+    } catch {
+      return null;
+    }
+  }
+
+  async getPovVNs(
+    povId: string | number,
+    page: number = 1,
+    limit: number = 24,
+    sort: string = 'pov_votes',
+    rank?: string,
+    olang?: string
+  ): Promise<PovVNsResponse | null> {
+    try {
+      const query = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        sort,
+      });
+      if (rank) query.set('rank', rank);
+      if (olang) query.set('olang', olang);
+      return await this.fetch<PovVNsResponse>(`/api/v1/stats/pov/${povId}/vns?${query.toString()}`);
+    } catch {
+      return null;
+    }
+  }
+
+  async getPovVNsByCategory(
+    povId: string | number,
+    categoryType: CategoryType,
+    categoryValue: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<VNListByCategoryResponse | null> {
+    const backendUp = await this.checkBackendAvailable();
+    if (!backendUp) return null;
+
+    try {
+      const params = new URLSearchParams({
+        category_type: categoryType,
+        category_value: categoryValue,
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
+      return await this.fetch<VNListByCategoryResponse>(
+        `/api/v1/stats/pov/${povId}/vns-by-category?${params.toString()}`
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async getSimilarPovs(povId: string | number, limit: number = 30): Promise<SimilarPov[]> {
+    try {
+      return await this.fetch<SimilarPov[]>(`/api/v1/stats/pov/${povId}/similar?limit=${limit}`);
+    } catch {
+      return [];
+    }
+  }
+
+  async getPovRelatedTags(povId: string | number, limit: number = 30): Promise<PovRelatedTag[]> {
+    try {
+      return await this.fetch<PovRelatedTag[]>(`/api/v1/stats/pov/${povId}/tags?limit=${limit}`);
+    } catch {
+      return [];
+    }
+  }
+
   /**
    * Get tag parents.
    * ALL data comes from local database.
@@ -3658,7 +3890,7 @@ class VNDBStatsAPI {
     }
   }
 
-  async getRandomEntity(entityType: 'tags' | 'traits' | 'staff' | 'seiyuu' | 'producers'): Promise<string | null> {
+  async getRandomEntity(entityType: 'tags' | 'traits' | 'staff' | 'seiyuu' | 'producers' | 'povs'): Promise<string | null> {
     try {
       const result = await this.fetch<{ id: string | null }>(`/api/v1/browse/random/${entityType}`, { signal: AbortSignal.timeout(10000) });
       return result.id;
