@@ -97,7 +97,7 @@ fi
 
 cd "$APP_DIR"
 sudo -u vnclub bun install --frozen-lockfile
-sudo -u vnclub bun run build
+bash "$REPO_DIR/deploy/native/scripts/build-web.sh"
 sudo -u vnclub mkdir -p public/vndb-images
 
 # arm64 and x86-64 both resolve to prebuilt wheels for the backend pins. If a

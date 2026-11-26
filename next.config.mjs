@@ -256,9 +256,17 @@ const nextConfig = {
   serverExternalPackages: ['sharp'],
   experimental: {
     optimizePackageImports: ['recharts', 'lucide-react', '@dnd-kit/core', '@dnd-kit/sortable', 'react-markdown'],
+    cpus: 2,
+    memoryBasedWorkersCount: true,
+    serverSourceMaps: false,
+    webpackBuildWorker: true,
+    webpackMemoryOptimizations: true,
+    turbopackPluginRuntimeStrategy: 'workerThreads',
+    turbopackFileSystemCacheForBuild: false,
   },
-  // Disable source maps in production to avoid leaking source code
+  // Disable source maps in production to avoid leaking source code and reduce build RAM
   productionBrowserSourceMaps: false,
+  enablePrerenderSourceMaps: false,
   // Required for Next.js 16+ with existing webpack config
   turbopack: {},
   webpack: (config, { dev }) => {
@@ -267,6 +275,8 @@ const nextConfig = {
         ...config.watchOptions,
         ignored: ['**/.cache/**', '**/node_modules/**'],
       };
+    } else {
+      config.cache = false;
     }
     return config;
   },

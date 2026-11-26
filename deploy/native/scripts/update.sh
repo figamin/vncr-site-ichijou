@@ -8,7 +8,7 @@ cd "$APP_DIR"
 sudo -u vnclub git pull --ff-only
 chmod +x "$APP_DIR"/deploy/native/scripts/*.sh "$APP_DIR"/deploy/native/scripts/*.py
 sudo -u vnclub bun install --frozen-lockfile
-sudo -u vnclub bun run build
+bash "$APP_DIR/deploy/native/scripts/build-web.sh"
 
 # Same installer prepare-app.sh uses, so arm64 hosts get the same wheel
 # selection and the same toolchain error message.
