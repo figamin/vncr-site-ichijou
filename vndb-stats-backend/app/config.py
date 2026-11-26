@@ -61,6 +61,23 @@ class Settings(BaseSettings):
     database_pool_size: int = 30   # Increased for concurrent heavy stats calculations
     database_max_overflow: int = 50  # Allow burst capacity for large user profiles
 
+    # Triple-database + dedicated Jiten PostgreSQL server (11.11.11.4:5432)
+    # Set any of these to empty string to disable that external database connection.
+    vndb_source_database_url: str | None = (
+        "postgresql+asyncpg://vnuser:supermio@11.11.11.4:5432/vndb"
+    )
+    egs_database_url: str | None = (
+        "postgresql+asyncpg://vnuser:supermio@11.11.11.4:5432/egs"
+    )
+    bangumi_database_url: str | None = (
+        "postgresql+asyncpg://vnuser:supermio@11.11.11.4:5432/bangumi"
+    )
+    jiten_database_url: str | None = (
+        "postgresql+asyncpg://vnuser:supermio@11.11.11.4:5432/jiten"
+    )
+    external_db_pool_size: int = 5
+    external_db_max_overflow: int = 10
+
     # Redis
     redis_url: str = "redis://localhost:6379"
     cache_ttl_seconds: int = 600  # 10 minutes default cache (increased from 5 min)
@@ -167,6 +184,19 @@ class Settings(BaseSettings):
     def _blank_int_to_none(cls, v):
         # An env var set to an empty string (e.g. DISCORD_GUILD_ID= for a global
         # command sync) must read as None, not fail integer parsing at startup.
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator(
+        "vndb_source_database_url",
+        "egs_database_url",
+        "bangumi_database_url",
+        "jiten_database_url",
+        mode="before",
+    )
+    @classmethod
+    def _blank_str_to_none(cls, v):
         if isinstance(v, str) and v.strip() == "":
             return None
         return v

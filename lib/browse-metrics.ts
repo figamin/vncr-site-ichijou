@@ -16,6 +16,9 @@ export const BROWSE_METRICS = [
   'completion_rate',
   'wishlist',
   'difficulty',
+  'egs_median',
+  'bangumi_score',
+  'consensus',
 ] as const;
 
 export type BrowseMetric = (typeof BROWSE_METRICS)[number];
@@ -40,6 +43,9 @@ const asSignedPoints: Formatter = (value) =>
 const asSpread: Formatter = (value) => `±${value.toFixed(2)}`;
 /** Difficulty, on the upstream's own scale rather than rescaled to a percentage. */
 const asDifficulty: Formatter = (value) => value.toFixed(2);
+const asEgsScore: Formatter = (value) => `EGS ${Math.round(value)}`;
+const asBangumiScore: Formatter = (value) => `BGM ${value.toFixed(1)}`;
+const asConsensus: Formatter = (value) => value.toFixed(2);
 
 interface MetricDisplay {
   label: string;
@@ -88,6 +94,21 @@ export const METRIC_DISPLAY: Record<BrowseMetric, MetricDisplay> = {
     label: 'Reading difficulty',
     blurb: 'How hard the Japanese is, measured from the script.',
     format: asDifficulty,
+  },
+  egs_median: {
+    label: 'ErogameScape median',
+    blurb: 'Median score (0–100) from Japanese players on ErogameScape.',
+    format: asEgsScore,
+  },
+  bangumi_score: {
+    label: 'Bangumi score',
+    blurb: 'Community score (1–10) from Bangumi.',
+    format: asBangumiScore,
+  },
+  consensus: {
+    label: 'Multi-DB consensus',
+    blurb: 'Average normalized score across VNDB, ErogameScape, and Bangumi.',
+    format: asConsensus,
   },
 };
 

@@ -395,13 +395,14 @@ async def build_wotd_response(pick: WordOfTheDay, db: AsyncSession | None = None
 
 async def run_word_of_the_day_selection():
     """Scheduled task: select today's word and invalidate cache."""
-    from app.db.database import async_session_maker
+    from app.db.database import async_session_maker, jiten_session
     from app.core.cache import get_cache
 
     logger.info("Running Word of the Day selection...")
 
+    session_factory = jiten_session or async_session_maker
     try:
-        async with async_session_maker() as db:
+        async with session_factory() as db:
             pick = await get_or_select(db)
             if not pick:
                 logger.warning("No eligible word found for Word of the Day")

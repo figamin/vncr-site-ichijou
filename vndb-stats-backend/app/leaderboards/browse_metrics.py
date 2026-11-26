@@ -32,7 +32,7 @@ from typing import Callable
 from sqlalchemy import Float, and_, cast, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.db.models import SystemMetadata, VisualNovel, VNDifficulty
+from app.db.models import SystemMetadata, VisualNovel, VNDifficulty, VNExternalRating
 from app.leaderboards.aggregate import RATE_PRIOR_KEY, RATE_PRIOR_READERS
 
 #: Reading attempts, which is what a completion or drop rate is a proportion of. Wishlist
@@ -244,6 +244,48 @@ METRIC_SORTS: dict[str, MetricSort] = {
             _defined=lambda: VNDifficulty.difficulty_raw.isnot(None),
             join_model=VNDifficulty,
             _join_condition=lambda: VNDifficulty.vn_id == VisualNovel.id,
+        ),
+        MetricSort(
+            key="egs_median",
+            label="ErogameScape median",
+            board_slug=None,
+            min_sample=20,
+            sample_noun="EGS votes",
+            high_means="higher ErogameScape median",
+            low_means="lower ErogameScape median",
+            _expression=lambda: cast(VNExternalRating.egs_median, Float),
+            _sample=lambda: VNExternalRating.egs_count,
+            _defined=lambda: VNExternalRating.egs_median.isnot(None),
+            join_model=VNExternalRating,
+            _join_condition=lambda: VNExternalRating.vn_id == VisualNovel.id,
+        ),
+        MetricSort(
+            key="bangumi_score",
+            label="Bangumi score",
+            board_slug=None,
+            min_sample=20,
+            sample_noun="Bangumi votes",
+            high_means="higher Bangumi score",
+            low_means="lower Bangumi score",
+            _expression=lambda: VNExternalRating.bangumi_score,
+            _sample=lambda: VNExternalRating.bangumi_votes,
+            _defined=lambda: VNExternalRating.bangumi_score.isnot(None),
+            join_model=VNExternalRating,
+            _join_condition=lambda: VNExternalRating.vn_id == VisualNovel.id,
+        ),
+        MetricSort(
+            key="consensus",
+            label="Multi-DB consensus",
+            board_slug=None,
+            min_sample=20,
+            sample_noun="VNDB votes",
+            high_means="higher cross-database average",
+            low_means="lower cross-database average",
+            _expression=lambda: VNExternalRating.consensus_score,
+            _sample=lambda: VisualNovel.votecount,
+            _defined=lambda: VNExternalRating.consensus_score.isnot(None),
+            join_model=VNExternalRating,
+            _join_condition=lambda: VNExternalRating.vn_id == VisualNovel.id,
         ),
     )
 }

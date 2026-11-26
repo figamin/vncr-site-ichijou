@@ -24,8 +24,13 @@ from app.db.vn_filters import (
     vn_attribute_predicates,
     vn_entity_predicates,
 )
-from app.db.models import VisualNovel, VNDifficulty, Tag, VNTag, Trait, VNSimilarity, VNCoOccurrence, CharacterVN, CharacterTrait, Character, Producer, Release, ReleaseVN, ReleaseProducer, Staff, VNStaff, VNSeiyuu, VNRelation, ExtlinksMaster, VNExtlink, WikidataEntry, ReleaseExtlink
+from app.db.models import VisualNovel, VNDifficulty, VNExternalRating, Tag, VNTag, Trait, VNSimilarity, VNCoOccurrence, CharacterVN, CharacterTrait, Character, Producer, Release, ReleaseVN, ReleaseProducer, Staff, VNStaff, VNSeiyuu, VNRelation, ExtlinksMaster, VNExtlink, WikidataEntry, ReleaseExtlink
 from app.services.extlinks_service import build_extlink_url, build_wikidata_links, get_site_label, SHOP_SITES, LINK_SITES, LINK_SORT_ORDER, SHOP_SORT_ORDER, DEPRECATED_SITES, TRANSLATION_ONLY_SITES, NON_JP_CONSOLE_STORES
+from app.services.external_db_service import (
+    get_vn_external_detail,
+    get_vn_external_summary,
+    merge_external_links_and_shops,
+)
 from app.services.vn_credits import group_seiyuu_credits, order_staff_credits
 from app.core.vndb_client import get_vndb_client
 from app.core.auth import require_admin
@@ -359,6 +364,11 @@ async def search_vns(
             VisualNovel.title_jp.ilike(f"%{eq}%"),
             VisualNovel.title_romaji.ilike(f"%{eq}%"),
             _aliases_expr.ilike(f"%{eq}%"),
+            VisualNovel.id.in_(
+                select(VNExternalRating.vn_id).where(
+                    VNExternalRating.bangumi_name_cn.ilike(f"%{eq}%")
+                )
+            ),
         )
         # Normalized match: strip punctuation/spaces so "muvluv" matches "Muv-Luv",
         # "steinsgate" matches "Steins;Gate", "fatestaynight" matches "Fate/stay night", etc.
@@ -2071,6 +2081,23 @@ async def get_vn_vote_stats(
     return response
 
 
+@router.get("/{vn_id}/external", response_model=schemas.VNExternalDetailResponse)
+async def get_vn_external(
+    vn_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get supplementary ErogameScape and Bangumi data for a visual novel."""
+    normalized_id = vn_id if vn_id.startswith("v") else f"v{vn_id}"
+
+    vn_check = await db.execute(
+        select(VisualNovel.id).where(VisualNovel.id == normalized_id)
+    )
+    if not vn_check.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail=f"VN {vn_id} not found")
+
+    return await get_vn_external_detail(normalized_id)
+
+
 @router.get("/{vn_id}", response_model=schemas.VNDetailResponse)
 async def get_vn_details(
     vn_id: str,
@@ -2238,6 +2265,64 @@ async def get_vn_details(
                     site=site, url=url, label=get_site_label(site)
                 ))
 
+    # Merge supplementary links/shops + ratings from ErogameScape & Bangumi
+    external_summary = None
+    ext_payload = await get_vn_external_summary(vn.id, vn.rating)
+    if ext_payload:
+        summary_data = ext_payload.get("summary")
+        if isinstance(summary_data, dict):
+            external_summary = schemas.ExternalRatingsSummary(**summary_data)
+        vn_links, shops = merge_external_links_and_shops(
+            vn_links,
+            shops,
+            ext_payload.get("extra_links") or [],
+            ext_payload.get("extra_shops") or [],
+        )
+    else:
+        # Fallback to local vn_external_ratings mirror if triple DB is disabled/unreachable
+        try:
+            async with db.begin_nested():
+                ext_row = (
+                    await db.execute(
+                        select(VNExternalRating).where(VNExternalRating.vn_id == vn.id)
+                    )
+                ).scalar_one_or_none()
+            if ext_row and (ext_row.primary_egs_id or ext_row.primary_bangumi_id):
+                egs_sum = (
+                    schemas.EGSSummary(
+                        egs_id=ext_row.primary_egs_id,
+                        median=ext_row.egs_median,
+                        average=ext_row.egs_average,
+                        stdev=ext_row.egs_stdev,
+                        count=ext_row.egs_count,
+                        playtime_median=ext_row.egs_playtime_median,
+                        fun_time_median=ext_row.egs_fun_time_median,
+                        genre=ext_row.egs_genre,
+                        url=f"https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/game.php?game={ext_row.primary_egs_id}",
+                    )
+                    if ext_row.primary_egs_id
+                    else None
+                )
+                bgm_sum = (
+                    schemas.BangumiSummary(
+                        bangumi_id=ext_row.primary_bangumi_id,
+                        name_cn=ext_row.bangumi_name_cn,
+                        score=ext_row.bangumi_score,
+                        rank=ext_row.bangumi_rank,
+                        votes=ext_row.bangumi_votes,
+                        url=f"https://bgm.tv/subject/{ext_row.primary_bangumi_id}",
+                    )
+                    if ext_row.primary_bangumi_id
+                    else None
+                )
+                external_summary = schemas.ExternalRatingsSummary(
+                    egs=egs_sum,
+                    bangumi=bgm_sum,
+                    consensus_score=ext_row.consensus_score,
+                )
+        except Exception:
+            pass
+
     # Deduplicate: remove from Links any site that also appears in Shops
     if shops:
         shop_site_set = {s.site for s in shops}
@@ -2268,6 +2353,7 @@ async def get_vn_details(
         updated_at=vn.updated_at,
         links=vn_links,
         shops=shops,
+        external=external_summary,
     )
 
 

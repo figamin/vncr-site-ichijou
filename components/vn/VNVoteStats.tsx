@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { VNVoteStats as VNVoteStatsData } from '@/lib/vndb-stats-api';
+import type { VNVoteStats as VNVoteStatsData, VNExternalDetail } from '@/lib/vndb-stats-api';
 import { VNVoteDistribution } from './VNVoteDistribution';
 import { VNInsightCards } from './VNInsightCards';
 import { VNComparativeContext } from './VNComparativeContext';
+import { VNCrossDbStats } from './VNCrossDbStats';
 
 import { TrendLineChart } from '@/components/stats/TrendLineChart';
 
@@ -14,6 +15,7 @@ interface VNVoteStatsProps {
   error: boolean;
   totalVotecount?: number;
   vnRating?: number | null;
+  external?: VNExternalDetail | null;
 }
 
 function ChartToggle({
@@ -106,9 +108,10 @@ export function VoteStatsSkeleton() {
   );
 }
 
-export function VNVoteStats({ data, isLoading, error, totalVotecount, vnRating }: VNVoteStatsProps) {
+export function VNVoteStats({ data, isLoading, error, totalVotecount, vnRating, external }: VNVoteStatsProps) {
   const [votesMode, setVotesMode] = useState<'cumulative' | 'monthly'>('cumulative');
   const [scoreMode, setScoreMode] = useState<'cumulative' | 'monthly'>('cumulative');
+  const [distSource, setDistSource] = useState<'vndb' | 'egs' | 'bangumi'>('vndb');
   const hasContent = !isLoading && !error && !!data && data.total_votes > 0;
 
   // Error/empty states
@@ -145,15 +148,72 @@ export function VNVoteStats({ data, isLoading, error, totalVotecount, vnRating }
     { value: 'monthly', label: 'Monthly' },
   ];
 
+  const egsDistTotal = external?.egs?.score_distribution
+    ? Object.values(external.egs.score_distribution).reduce((acc, n) => acc + n, 0)
+    : 0;
+  const bgmDistTotal = external?.bangumi?.score_distribution
+    ? Object.values(external.bangumi.score_distribution).reduce((acc, n) => acc + n, 0)
+    : 0;
+
+  const distOptions: Array<{ value: 'vndb' | 'egs' | 'bangumi'; label: string }> = [
+    { value: 'vndb', label: 'VNDB' },
+    ...(egsDistTotal > 0 ? [{ value: 'egs' as const, label: 'EGS' }] : []),
+    ...(bgmDistTotal > 0 ? [{ value: 'bangumi' as const, label: 'Bangumi' }] : []),
+  ];
+
+  const activeSource =
+    (distSource === 'egs' && egsDistTotal > 0) ||
+    (distSource === 'bangumi' && bgmDistTotal > 0)
+      ? distSource
+      : 'vndb';
+
+  const activeDist =
+    activeSource === 'egs'
+      ? external!.egs!.score_distribution
+      : activeSource === 'bangumi'
+        ? external!.bangumi!.score_distribution
+        : data.score_distribution;
+  const activeTotalVotes =
+    activeSource === 'egs'
+      ? egsDistTotal
+      : activeSource === 'bangumi'
+        ? bgmDistTotal
+        : (totalVotecount ?? data.total_votes);
+  const activePublicVotes =
+    activeSource === 'vndb' ? data.total_votes : undefined;
+  const activeHelpText =
+    activeSource === 'egs'
+      ? 'ErogameScape user scores (0–100) grouped into 1–10 buckets (e.g. Score 8 = 75–84).'
+      : activeSource === 'bangumi'
+        ? 'Bangumi community vote distribution on a 1–10 integer scale.'
+        : 'VNDB votes are on a 10–100 scale. Each bar groups votes rounded to the nearest 10 (e.g. Score 8 = votes 75–84).';
+
   return (
     <div className="space-y-6">
       {/* First section renders immediately (above the fold) */}
+      <VNCrossDbStats
+        vndbRating={vnRating ?? data.average_score}
+        vndbVotecount={totalVotecount ?? data.total_votes}
+        vndbAvg={data.average_score}
+        external={external}
+      />
+
       {data.context && <VNComparativeContext context={data.context} />}
 
       <VNVoteDistribution
-        distribution={data.score_distribution}
-        totalVotes={totalVotecount ?? data.total_votes}
-        publicVotes={data.total_votes}
+        distribution={activeDist}
+        totalVotes={activeTotalVotes}
+        publicVotes={activePublicVotes}
+        helpText={activeHelpText}
+        headerRight={
+          distOptions.length > 1 ? (
+            <ChartToggle
+              active={activeSource}
+              options={distOptions}
+              onChange={(v) => setDistSource(v as 'vndb' | 'egs' | 'bangumi')}
+            />
+          ) : undefined
+        }
       />
 
       <VNInsightCards

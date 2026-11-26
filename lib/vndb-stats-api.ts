@@ -351,6 +351,131 @@ export interface ExtlinkInfo {
   label: string;
 }
 
+export interface EGSSummary {
+  egs_id: number;
+  gamename?: string | null;
+  median?: number | null;
+  average?: number | null;
+  stdev?: number | null;
+  count?: number | null;
+  playtime_median?: number | null;
+  fun_time_median?: number | null;
+  genre?: string | null;
+  trial_url?: string | null;
+  url: string;
+}
+
+export interface BangumiSummary {
+  bangumi_id: number;
+  name?: string | null;
+  name_cn?: string | null;
+  score?: number | null;
+  rank?: number | null;
+  votes?: number | null;
+  url: string;
+}
+
+export interface ExternalRatingsSummary {
+  egs?: EGSSummary | null;
+  bangumi?: BangumiSummary | null;
+  consensus_score?: number | null;
+}
+
+export interface EGSPovItem {
+  id: number;
+  title: string;
+  rank: string;
+  count: number;
+  spoiler: boolean;
+}
+
+export interface EGSMusicItem {
+  id: number;
+  category: string;
+  name: string;
+  vocal: boolean;
+  singers: string[];
+}
+
+export interface EGSDetail {
+  egs_id: number;
+  all_egs_ids: number[];
+  gamename?: string | null;
+  furigana?: string | null;
+  sellday?: string | null;
+  median?: number | null;
+  average?: number | null;
+  stdev?: number | null;
+  count?: number | null;
+  count_all?: number | null;
+  max_score?: number | null;
+  min_score?: number | null;
+  playtime_median?: number | null;
+  fun_time_median?: number | null;
+  genre?: string | null;
+  erogame?: boolean | null;
+  okazu?: boolean | null;
+  trial_url?: string | null;
+  masterup?: string | null;
+  url: string;
+  score_distribution: Record<string, number>;
+  total_reviews: number;
+  hitokoto_count: number;
+  memo_count: number;
+  play_count: number;
+  giveup_count: number;
+  possession_count: number;
+  povs: EGSPovItem[];
+  music: EGSMusicItem[];
+}
+
+export interface BangumiTagItem {
+  name: string;
+  count: number;
+}
+
+export interface BangumiFavoriteStats {
+  done: number;
+  wish: number;
+  doing: number;
+  on_hold: number;
+  dropped: number;
+}
+
+export interface BangumiRelationItem {
+  id: number;
+  type: string;
+  name: string;
+  name_cn?: string | null;
+  date?: string | null;
+  score?: number | null;
+  rank?: number | null;
+  url: string;
+}
+
+export interface BangumiDetail {
+  bangumi_id: number;
+  all_bangumi_ids: number[];
+  name?: string | null;
+  name_cn?: string | null;
+  date?: string | null;
+  score?: number | null;
+  rank?: number | null;
+  total_votes: number;
+  url: string;
+  favorite?: BangumiFavoriteStats | null;
+  score_distribution: Record<string, number>;
+  meta_tags: string[];
+  tags: BangumiTagItem[];
+  relations: BangumiRelationItem[];
+}
+
+export interface VNExternalDetail {
+  vn_id: string;
+  egs?: EGSDetail | null;
+  bangumi?: BangumiDetail | null;
+}
+
 export interface VNDetail {
   id: string;
   title: string;
@@ -373,6 +498,7 @@ export interface VNDetail {
   updated_at?: string;
   links?: ExtlinkInfo[];
   shops?: ExtlinkInfo[];
+  external?: ExternalRatingsSummary | null;
 }
 
 // ============ Similar VNs Types ============
@@ -2168,6 +2294,18 @@ class VNDBStatsAPI {
       return await this.fetch<VNVoteStats>(
         `/api/v1/vn/${normalizedId}/vote-stats`,
         { timeout: 15000 }
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async getVNExternal(vnId: string): Promise<VNExternalDetail | null> {
+    const normalizedId = vnId.startsWith('v') ? vnId : `v${vnId}`;
+    try {
+      return await this.fetch<VNExternalDetail>(
+        `/api/v1/vn/${normalizedId}/external`,
+        { timeout: 10000 }
       );
     } catch {
       return null;

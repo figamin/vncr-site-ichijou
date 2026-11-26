@@ -215,9 +215,13 @@ async def run_daily_update():
 
     try:
         async with asyncio.timeout(max_duration):
-            # Phase 1: Import data
+            # Phase 1: Import data (prefer synced VNDB PostgreSQL source when configured)
             logger.info("\n>>> PHASE 1/4: DATA IMPORT <<<")
-            if run_id:
+            if settings.vndb_source_database_url:
+                from app.ingestion.pg_vndb_sync import sync_from_vndb_pg
+
+                await sync_from_vndb_pg(run_id=run_id)
+            elif run_id:
                 await run_import_with_tracking(run_id, force_download=True)
             else:
                 # Fallback if ImportRun creation failed
@@ -293,6 +297,14 @@ async def run_daily_update():
             except Exception as e:
                 degraded.append("difficulty")
                 logger.error(f"Difficulty refresh failed: {e}", exc_info=True)
+
+            # Mirror ErogameScape & Bangumi summary metrics from the triple-DB xref.
+            try:
+                from app.ingestion.external_sync import sync_external_ratings
+                logger.info(f"External ratings: {await sync_external_ratings()}")
+            except Exception as e:
+                degraded.append("external_ratings")
+                logger.error(f"External ratings sync failed: {e}", exc_info=True)
 
             # last_import marks the data load. last_full_update only advances when
             # every stage succeeded, so a degraded run stays visibly behind it.

@@ -18,7 +18,10 @@ import re
 
 import httpx
 
+from sqlalchemy import text
+
 from app.core.cache import get_cache
+from app.db.database import jiten_session
 from app.services.jiten_client import BASE_URL, TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -77,6 +80,23 @@ async def _get_json(path: str):
     raise last  # type: ignore[misc]
 
 
+async def _lookup_deck_id_in_jiten_db(vndb_id: str) -> int | None:
+    """Resolve a known deck id from the dedicated Jiten database without calling HTTP."""
+    if jiten_session is None:
+        return None
+    try:
+        async with jiten_session() as db:
+            result = await db.execute(
+                text("SELECT jiten_deck_id FROM vn_difficulty WHERE vn_id = :vn_id"),
+                {"vn_id": vndb_id},
+            )
+            row = result.scalar_one_or_none()
+            return int(row) if row is not None else None
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Jiten DB deck lookup failed for %s: %s", vndb_id, type(exc).__name__)
+        return None
+
+
 async def resolve_deck_id(vndb_id: str) -> int | None:
     """The jiten deck id for a VNDB id ("v17"), or None when the VN isn't on jiten."""
     if not _VNDB_ID_RE.match(vndb_id or ""):
@@ -92,8 +112,10 @@ async def resolve_deck_id(vndb_id: str) -> int | None:
         cached = await cache.get(key)
         if cached is not None:
             return cached.get("id")
-        ids = await _get_json(f"/api/media-deck/by-link-id/2/{vndb_id}")
-        deck_id = ids[0] if isinstance(ids, list) and ids else None
+        deck_id = await _lookup_deck_id_in_jiten_db(vndb_id)
+        if deck_id is None:
+            ids = await _get_json(f"/api/media-deck/by-link-id/2/{vndb_id}")
+            deck_id = ids[0] if isinstance(ids, list) and ids else None
         await cache.set(key, {"id": deck_id}, ttl=DECK_ID_TTL if deck_id else NULL_DECK_ID_TTL)
         return deck_id
 

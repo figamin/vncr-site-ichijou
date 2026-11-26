@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db
+from app.db.database import get_db, get_jiten_db
 from app.core.auth import require_admin
 from app.core.cache import get_cache
 from app.services import word_of_the_day_service as wotd
@@ -30,6 +30,7 @@ class OverrideRequest(BaseModel):
 async def get_word_of_the_day(
     target_date: str | None = Query(None, alias="date", pattern=r"^\d{4}-\d{2}-\d{2}$"),
     db: AsyncSession = Depends(get_db),
+    jiten_db: AsyncSession = Depends(get_jiten_db),
 ):
     """Get Word of the Day. Defaults to today; pass ?date=YYYY-MM-DD for a specific date."""
     cache = get_cache()
@@ -43,13 +44,13 @@ async def get_word_of_the_day(
         cached = await cache.get(cache_key)
         if cached:
             return cached
-        pick = await wotd.get_by_date(db, parsed)
+        pick = await wotd.get_by_date(jiten_db, parsed)
     else:
         cache_key = CACHE_KEY
         cached = await cache.get(cache_key)
         if cached:
             return cached
-        pick = await wotd.get_or_select(db)
+        pick = await wotd.get_or_select(jiten_db)
 
     if not pick:
         raise HTTPException(status_code=404, detail="No Word of the Day available")
@@ -62,10 +63,10 @@ async def get_word_of_the_day(
 @router.get("/history")
 async def get_history(
     limit: int = Query(default=30, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    jiten_db: AsyncSession = Depends(get_jiten_db),
 ):
     """Get past Word of the Day picks."""
-    picks = await wotd.get_history(db, limit=limit)
+    picks = await wotd.get_history(jiten_db, limit=limit)
     results = []
     for p in picks:
         word_info = (p.cached_data or {}).get("word_info", {})
@@ -90,6 +91,7 @@ async def override_word_of_the_day(
     body: OverrideRequest,
     admin: str = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    jiten_db: AsyncSession = Depends(get_jiten_db),
 ):
     """Admin: override Word of the Day for a specific date."""
     if body.date:
@@ -100,7 +102,7 @@ async def override_word_of_the_day(
     else:
         target_date = date.today() + timedelta(days=1)
 
-    pick = await wotd.set_override(db, body.word_id, target_date, admin_name=admin, reading_index=body.reading_index)
+    pick = await wotd.set_override(jiten_db, body.word_id, target_date, admin_name=admin, reading_index=body.reading_index)
     if not pick:
         raise HTTPException(status_code=404, detail=f"Failed to fetch word {body.word_id} from jiten.moe")
 
@@ -115,9 +117,10 @@ async def override_word_of_the_day(
 async def reroll_word_of_the_day(
     admin: str = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    jiten_db: AsyncSession = Depends(get_jiten_db),
 ):
     """Admin: reroll today's Word of the Day."""
-    pick = await wotd.reroll_today(db)
+    pick = await wotd.reroll_today(jiten_db)
     if not pick:
         raise HTTPException(status_code=404, detail="No eligible word found")
 

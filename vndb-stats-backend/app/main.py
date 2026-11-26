@@ -29,12 +29,19 @@ logging.getLogger("watchfiles").setLevel(logging.WARNING)
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.api.v1.router import api_router
-from app.db.database import init_db, get_db
+from app.db.database import (
+    init_db,
+    get_db,
+    vndb_source_session,
+    egs_session,
+    bangumi_session,
+    jiten_session,
+)
 from app.db.models import VisualNovel, SystemMetadata
 from app.core.tasks import TaskManager
 
@@ -251,6 +258,22 @@ async def db_status(db: AsyncSession = Depends(get_db)):
         full_update_age_hours = _age_hours(last_full_update)
         degraded = full_update_age_hours is None or full_update_age_hours > 26
 
+        async def _probe_external(factory):
+            if factory is None:
+                return "disabled"
+            try:
+                async with factory() as ext_db:
+                    await ext_db.execute(text("SELECT 1"))
+                return "connected"
+            except Exception:
+                return "unreachable"
+
+        import asyncio
+        ext_names = ("vndb_source", "egs", "bangumi", "jiten")
+        ext_factories = (vndb_source_session, egs_session, bangumi_session, jiten_session)
+        ext_statuses = await asyncio.gather(*(_probe_external(f) for f in ext_factories))
+        external_databases = dict(zip(ext_names, ext_statuses))
+
         return {
             "status": "healthy",
             "has_data": vn_count > 0,
@@ -262,6 +285,7 @@ async def db_status(db: AsyncSession = Depends(get_db)):
             "last_full_update": last_full_update,
             "degraded": degraded,
             "next_update": next_update,
+            "external_databases": external_databases,
         }
     except Exception as e:
         logging.getLogger(__name__).error(f"Health check DB error: {e}")

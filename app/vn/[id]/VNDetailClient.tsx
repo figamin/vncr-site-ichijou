@@ -9,15 +9,17 @@ import {
   VNDetail,
   VNCharacter,
   SimilarVNsResponse,
+  VNExternalDetail,
   getVNDBUrl,
 } from '@/lib/vndb-stats-api';
-import { useVNVoteStats, prefetchVoteStats } from '@/lib/vndb-stats-cached';
+import { useVNVoteStats, prefetchVoteStats, useVNExternal, prefetchVNExternal } from '@/lib/vndb-stats-cached';
 import { prefetchJitenData } from '@/lib/jiten-hooks';
 import { VNCover } from '@/components/vn/VNCover';
 import { VNTitle } from '@/components/vn/VNTitle';
-import { VNSidebar, RatingArc } from '@/components/vn/VNSidebar';
+import { VNSidebar, RatingArc, ExternalRatingsBar } from '@/components/vn/VNSidebar';
 import { VNDescription } from '@/components/vn/VNDescription';
 import { VNTags } from '@/components/vn/VNTags';
+import { VNExternalCommunity } from '@/components/vn/VNExternalCommunity';
 import { VNLanguageSummary } from '@/components/vn/VNLanguageSummary';
 import { VNTabs, VNTabId } from '@/components/vn/VNTabs';
 import { VNSimilar } from '@/components/vn/VNSimilar';
@@ -90,6 +92,7 @@ interface VNDetailClientProps {
   initialCharacters?: VNCharacter[] | null;
   initialSimilar?: SimilarVNsResponse | null;
   initialJitenDeckId?: number | null;
+  initialExternal?: VNExternalDetail | null;
   /** Measurements read during the server pass; null when the lookup did not resolve. */
   languageLookup?: LanguageLookup | null;
   /**
@@ -108,6 +111,7 @@ export default function VNDetailClient({
   initialCharacters,
   initialSimilar,
   initialJitenDeckId,
+  initialExternal = null,
   languageLookup = null,
   creditsSlot = null,
 }: VNDetailClientProps) {
@@ -223,6 +227,9 @@ export default function VNDetailClient({
     isLoading: voteStatsLoading,
   } = useVNVoteStats(vnId);
 
+  // Supplementary ErogameScape & Bangumi details
+  const { data: externalDetail } = useVNExternal(vnId, initialExternal);
+
   const loadSimilarVNs = useCallback(async () => {
     setSimilarLoading(true);
     setSimilarError(false);
@@ -271,6 +278,7 @@ export default function VNDetailClient({
     }
     if (tabId === 'stats') {
       prefetchVoteStats(vnId);
+      prefetchVNExternal(vnId);
     }
     void loadTabModule(tabId);
   }, [jitenDeckId, jitenVnId, loadSimilarVNs, loadTabModule, similarData, similarLoading, vnId]);
@@ -463,6 +471,7 @@ export default function VNDetailClient({
 
     const id = schedule(() => {
       prefetchVoteStats(vnId);
+      prefetchVNExternal(vnId);
       // A VN with no deck has nothing to warm, so the request is left unmade.
       if (jitenDeckId) prefetchJitenData(jitenVnId);
 
@@ -561,7 +570,11 @@ export default function VNDetailClient({
           {vn.rating != null && vn.votecount != null && vn.votecount > 0 && (
             <div className="mt-3 shrink-0">
               <RatingArc rating={vn.rating} votecount={vn.votecount} />
+              <ExternalRatingsBar external={vn.external} />
             </div>
+          )}
+          {!(vn.rating != null && vn.votecount != null && vn.votecount > 0) && vn.external && (
+            <ExternalRatingsBar external={vn.external} />
           )}
           <div className="vn-sec mt-3 p-3 lg:overflow-y-auto lg:min-h-0 scrollbar-hover">
             <VNSidebar
@@ -573,6 +586,7 @@ export default function VNDetailClient({
               updatedAt={vn.updated_at}
               links={vn.links}
               shops={vn.shops}
+              external={vn.external}
             />
           </div>
         </div>
@@ -611,6 +625,7 @@ export default function VNDetailClient({
                 onOpenAnalysis={() => handleTabChange('language')}
               />
               <VNTags tags={vn.tags} />
+              <VNExternalCommunity external={externalDetail} />
               {/* Language filter - applies to relations and similar VNs */}
               {((vn.relations && vn.relations.length > 0) || similarLoading || similarError || (similarData?.content_similar?.length || 0) > 0 || (similarData?.users_also_read?.length || 0) > 0) && (
                 <div className="flex items-center justify-end gap-2">
@@ -745,6 +760,7 @@ export default function VNDetailClient({
                 error={!!voteStatsError}
                 totalVotecount={vn.votecount}
                 vnRating={vn.rating}
+                external={externalDetail}
               />
             </div>
           )}

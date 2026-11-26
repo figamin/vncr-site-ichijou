@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getVNForMetadata, getVNCharactersServer, getSimilarVNsServer, getVNCreditsServer } from '@/lib/vndb-server';
+import { getVNForMetadata, getVNCharactersServer, getSimilarVNsServer, getVNCreditsServer, getVNExternalServer } from '@/lib/vndb-server';
 import {
   generatePageMetadata,
   generateVNJsonLd,
@@ -64,12 +64,13 @@ export default async function VNDetailPage({ params }: PageProps) {
   // Fetch VN metadata, characters, similar VNs, credits and the jiten language
   // measurements in parallel. The measurements carry the deck id, so the page resolves it
   // once.
-  const [vn, characters, similar, language, credits] = await Promise.all([
+  const [vn, characters, similar, language, credits, external] = await Promise.all([
     getVNForMetadata(id),
     getVNCharactersServer(id),
     getSimilarVNsServer(id),
     fetchLanguageLookup(vnId).catch(() => null),
     getVNCreditsServer(id),
+    getVNExternalServer(id),
   ]);
 
   // undefined leaves the client free to resolve the deck itself; null is a settled "no deck".
@@ -114,6 +115,7 @@ export default async function VNDetailPage({ params }: PageProps) {
         initialCharacters={characters}
         initialSimilar={similar}
         initialJitenDeckId={jitenDeckId}
+        initialExternal={external}
         languageLookup={language}
         creditsSlot={
           vn ? (

@@ -30,11 +30,26 @@ async def main(task: str) -> None:
 
         stats = await refresh_leaderboards()
         print(stats)
+    elif task == "external":
+        from app.ingestion.external_sync import sync_external_ratings
+
+        stats = await sync_external_ratings()
+        print(stats)
+    elif task == "jiten":
+        from app.ingestion.jiten_difficulty import import_jiten_difficulty
+
+        stats = await import_jiten_difficulty()
+        print(stats)
+    elif task == "pg_sync":
+        from app.ingestion.pg_vndb_sync import sync_from_vndb_pg
+
+        stats = await sync_from_vndb_pg()
+        print(stats)
     else:
         raise SystemExit(f"Unknown heavy task: {task}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        raise SystemExit("Usage: heavy_task.py daily|similarity|leaderboards")
+        raise SystemExit("Usage: heavy_task.py daily|similarity|leaderboards|external|jiten|pg_sync")
     asyncio.run(main(sys.argv[1]))

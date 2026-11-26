@@ -24,6 +24,24 @@ export function VNDBAttribution() {
         >
           Open Database License
         </a>
+        . Supplementary ratings, POVs, tags, and cross-media data come from{' '}
+        <a
+          href="https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="sw-link underline"
+        >
+          ErogameScape
+        </a>{' '}
+        and{' '}
+        <a
+          href="https://bgm.tv"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="sw-link underline"
+        >
+          Bangumi
+        </a>
         . Reading difficulty and script measurements come from{' '}
         <a
           href="https://jiten.moe"
@@ -33,7 +51,7 @@ export function VNDBAttribution() {
         >
           jiten.moe
         </a>
-        . Statistics are based on daily data dumps and may not reflect real-time changes.
+        . Statistics are based on database dumps and may not reflect real-time changes.
       </p>
     </div>
   );

@@ -7,9 +7,19 @@ interface VNVoteDistributionProps {
   distribution: Record<string, number>;
   totalVotes: number;
   publicVotes?: number;
+  title?: string;
+  helpText?: string;
+  headerRight?: React.ReactNode;
 }
 
-export function VNVoteDistribution({ distribution, totalVotes, publicVotes }: VNVoteDistributionProps) {
+export function VNVoteDistribution({
+  distribution,
+  totalVotes,
+  publicVotes,
+  title = 'Vote Distribution',
+  helpText = 'VNDB votes are on a 10–100 scale. Each bar groups votes rounded to the nearest 10 (e.g. Score 8 = votes 75–84).',
+  headerRight,
+}: VNVoteDistributionProps) {
   const data = useMemo(() => {
     const scores = [];
     for (let i = 1; i <= 10; i++) {
@@ -38,9 +48,10 @@ export function VNVoteDistribution({ distribution, totalVotes, publicVotes }: VN
     <section className="vn-sec p-4 sm:p-5">
       <div className="vn-sec-head">
         <div className="flex items-center gap-1.5">
-          <h2 className="vn-sec-title">Vote Distribution</h2>
-          <ChartHelpTooltip text="VNDB votes are on a 10–100 scale. Each bar groups votes rounded to the nearest 10 (e.g. Score 8 = votes 75–84)." />
+          <h2 className="vn-sec-title">{title}</h2>
+          <ChartHelpTooltip text={helpText} />
         </div>
+        {headerRight}
       </div>
 
       <div className="flex items-end gap-1 sm:gap-2 h-48">

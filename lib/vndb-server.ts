@@ -3,7 +3,7 @@
  * Uses Next.js fetch caching for performance.
  */
 
-import { VNDetail, VNCharacter, VNCredits, CharacterDetail, SimilarVNsResponse, BrowseResponse, BrowseFilters } from './vndb-stats-api';
+import { VNDetail, VNCharacter, VNCredits, CharacterDetail, SimilarVNsResponse, BrowseResponse, BrowseFilters, VNExternalDetail } from './vndb-stats-api';
 import type { Leaderboard, LeaderboardCatalogue } from '@/lib/vndb-stats-api';
 import { getBackendUrlOptional } from './config';
 
@@ -415,6 +415,28 @@ export async function getSimilarVNsServer(vnId: string, limit: number = 10): Pro
 
   try {
     const res = await fetch(`${backendUrl}/api/v1/vn/${normalizedId}/similar?limit=${limit}`, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch supplementary ErogameScape and Bangumi data for a VN server-side.
+ */
+export async function getVNExternalServer(vnId: string): Promise<VNExternalDetail | null> {
+  const backendUrl = getBackendUrlOptional();
+  if (!backendUrl) return null;
+
+  const normalizedId = vnId.startsWith('v') ? vnId : `v${vnId}`;
+
+  try {
+    const res = await fetch(`${backendUrl}/api/v1/vn/${normalizedId}/external`, {
       next: { revalidate: 3600 },
       signal: AbortSignal.timeout(3000),
     });

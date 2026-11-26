@@ -11,6 +11,7 @@ import {
   BrowseProducersResponse,
   SimilarCharacter,
   type VNVoteStats as VNVoteStatsData,
+  type VNExternalDetail,
 } from './vndb-stats-api';
 
 // Default SWR options for API caching
@@ -188,4 +189,22 @@ export function useVNVoteStats(vnId: string | null) {
 
 export function prefetchVoteStats(vnId: string) {
   preload(['vote-stats', vnId], () => voteStatsFetcher(vnId));
+}
+
+const vnExternalFetcher = (vnId: string) => vndbStatsApi.getVNExternal(vnId);
+
+export function useVNExternal(vnId: string | null, fallbackData?: VNExternalDetail | null) {
+  return useSWR<VNExternalDetail | null>(
+    vnId ? ['vn-external', vnId] : null,
+    () => vnExternalFetcher(vnId!),
+    {
+      ...DEFAULT_SWR_OPTIONS,
+      revalidateIfStale: false,
+      ...(fallbackData !== undefined ? { fallbackData } : {}),
+    },
+  );
+}
+
+export function prefetchVNExternal(vnId: string) {
+  preload(['vn-external', vnId], () => vnExternalFetcher(vnId));
 }

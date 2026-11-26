@@ -339,6 +339,142 @@ class ExtlinkInfo(BaseModel):
     label: str
 
 
+class EGSSummary(BaseModel):
+    """Compact ErogameScape summary attached to VN detail."""
+    egs_id: int
+    gamename: str | None = None
+    median: int | None = None
+    average: int | None = None
+    stdev: int | None = None
+    count: int | None = None
+    playtime_median: int | None = None
+    fun_time_median: int | None = None
+    genre: str | None = None
+    trial_url: str | None = None
+    url: str
+
+
+class BangumiSummary(BaseModel):
+    """Compact Bangumi summary attached to VN detail."""
+    bangumi_id: int
+    name: str | None = None
+    name_cn: str | None = None
+    score: float | None = None
+    rank: int | None = None
+    votes: int | None = None
+    url: str
+
+
+class ExternalRatingsSummary(BaseModel):
+    """Multi-database summary for ErogameScape and Bangumi."""
+    egs: EGSSummary | None = None
+    bangumi: BangumiSummary | None = None
+    consensus_score: float | None = None
+
+
+class EGSPovItem(BaseModel):
+    """Community POV tag from ErogameScape."""
+    id: int
+    title: str
+    rank: str
+    count: int
+    spoiler: bool = False
+
+
+class EGSMusicItem(BaseModel):
+    """Theme song / music track from ErogameScape."""
+    id: int
+    category: str
+    name: str
+    vocal: bool = False
+    singers: list[str] = []
+
+
+class EGSDetail(BaseModel):
+    """Rich ErogameScape data for a VN."""
+    egs_id: int
+    all_egs_ids: list[int] = []
+    gamename: str | None = None
+    furigana: str | None = None
+    sellday: str | None = None
+    median: int | None = None
+    average: int | None = None
+    stdev: int | None = None
+    count: int | None = None
+    count_all: int | None = None
+    max_score: int | None = None
+    min_score: int | None = None
+    playtime_median: int | None = None
+    fun_time_median: int | None = None
+    genre: str | None = None
+    erogame: bool | None = None
+    okazu: bool | None = None
+    trial_url: str | None = None
+    masterup: str | None = None
+    url: str
+    score_distribution: dict[str, int] = {}
+    total_reviews: int = 0
+    hitokoto_count: int = 0
+    memo_count: int = 0
+    play_count: int = 0
+    giveup_count: int = 0
+    possession_count: int = 0
+    povs: list[EGSPovItem] = []
+    music: list[EGSMusicItem] = []
+
+
+class BangumiTagItem(BaseModel):
+    """Community tag from Bangumi."""
+    name: str
+    count: int
+
+
+class BangumiFavoriteStats(BaseModel):
+    """User list counts from Bangumi."""
+    done: int = 0
+    wish: int = 0
+    doing: int = 0
+    on_hold: int = 0
+    dropped: int = 0
+
+
+class BangumiRelationItem(BaseModel):
+    """Related cross-media entry on Bangumi (anime, manga, OST, etc.)."""
+    id: int
+    type: str
+    name: str
+    name_cn: str | None = None
+    date: str | None = None
+    score: float | None = None
+    rank: int | None = None
+    url: str
+
+
+class BangumiDetail(BaseModel):
+    """Rich Bangumi data for a VN."""
+    bangumi_id: int
+    all_bangumi_ids: list[int] = []
+    name: str | None = None
+    name_cn: str | None = None
+    date: str | None = None
+    score: float | None = None
+    rank: int | None = None
+    total_votes: int = 0
+    url: str
+    favorite: BangumiFavoriteStats | None = None
+    score_distribution: dict[str, int] = {}
+    meta_tags: list[str] = []
+    tags: list[BangumiTagItem] = []
+    relations: list[BangumiRelationItem] = []
+
+
+class VNExternalDetailResponse(BaseModel):
+    """Full cross-database ErogameScape & Bangumi data for a VN."""
+    vn_id: str
+    egs: EGSDetail | None = None
+    bangumi: BangumiDetail | None = None
+
+
 class VNDetailResponse(BaseModel):
     """Detailed VN information."""
     id: str
@@ -361,6 +497,7 @@ class VNDetailResponse(BaseModel):
     updated_at: datetime | None = None
     links: list[ExtlinkInfo] = []
     shops: list[ExtlinkInfo] = []
+    external: ExternalRatingsSummary | None = None
 
 
 class VNMonthlyVotes(BaseModel):

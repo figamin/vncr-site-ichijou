@@ -25,7 +25,8 @@ import httpx
 from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 
-from app.db.database import async_session
+from app.db.database import async_session, jiten_session
+from app.db.jiten_models import JitenVNDifficulty
 from app.db.models import VNDifficulty, VisualNovel
 
 logger = logging.getLogger(__name__)
@@ -159,25 +160,11 @@ async def sweep_decks() -> tuple[list[dict], int | None]:
 STORE_BATCH_SIZE = 1_000
 
 
-async def store_rows(db, rows: list[dict]) -> int:
-    """Upsert the swept rows. Nothing is ever deleted here; see the module docstring."""
+async def _upsert_difficulty_rows(db, model, rows: list[dict]) -> int:
+    """Upsert difficulty rows into the given ORM model table."""
     if not rows:
         return 0
 
-    # A title absent from the local database would violate the foreign key, and a jiten deck
-    # can legitimately point at an id that has not been imported.
-    known = await db.execute(
-        select(VisualNovel.id).where(VisualNovel.id.in_([r["vn_id"] for r in rows]))
-    )
-    known_ids = {row[0] for row in known}
-    rows = [r for r in rows if r["vn_id"] in known_ids]
-    if not rows:
-        return 0
-
-    # A deck that moves to a different title collides on the deck-id index rather than on the
-    # primary key, which the upsert below does not cover: the row is dropped first so the
-    # move lands instead of raising. Nothing else deletes from this table, so without it one
-    # relink upstream stops every later sweep, permanently.
     await db.execute(
         text(
             "DELETE FROM vn_difficulty"
@@ -189,11 +176,9 @@ async def store_rows(db, rows: list[dict]) -> int:
         },
     )
 
-    # Batched because the driver binds one parameter per column per row, and a single
-    # statement over the whole mirror stops fitting as upstream grows.
     for start in range(0, len(rows), STORE_BATCH_SIZE):
         batch = rows[start : start + STORE_BATCH_SIZE]
-        statement = insert(VNDifficulty).values(batch)
+        statement = insert(model).values(batch)
         updates = {
             column: statement.excluded[column]
             for column in batch[0]
@@ -208,14 +193,69 @@ async def store_rows(db, rows: list[dict]) -> int:
     return len(rows)
 
 
-async def import_jiten_difficulty() -> dict:
-    """Refresh the difficulty mirror. Entry point for the import pipeline."""
+async def store_jiten_rows(jiten_db, rows: list[dict]) -> int:
+    """Upsert swept rows into the dedicated Jiten database (no VNDB FK restriction)."""
+    return await _upsert_difficulty_rows(jiten_db, JitenVNDifficulty, rows)
+
+
+async def store_rows(db, rows: list[dict]) -> int:
+    """Upsert the swept rows into the app DB mirror. Nothing is ever deleted here."""
+    if not rows:
+        return 0
+
+    # A title absent from the local database would violate the foreign key, and a jiten deck
+    # can legitimately point at an id that has not been imported.
+    known = await db.execute(
+        select(VisualNovel.id).where(VisualNovel.id.in_([r["vn_id"] for r in rows]))
+    )
+    known_ids = {row[0] for row in known}
+    rows = [r for r in rows if r["vn_id"] in known_ids]
+    if not rows:
+        return 0
+
+    return await _upsert_difficulty_rows(db, VNDifficulty, rows)
+
+
+async def sync_difficulty_from_jiten_db() -> int:
+    """Mirror rows from the dedicated Jiten database into the primary app database."""
+    if jiten_session is None:
+        return 0
+
+    async with jiten_session() as jiten_db:
+        result = await jiten_db.execute(select(JitenVNDifficulty))
+        rows = [
+            {
+                "vn_id": item.vn_id,
+                "jiten_deck_id": item.jiten_deck_id,
+                "difficulty": item.difficulty,
+                "difficulty_raw": item.difficulty_raw,
+                "character_count": item.character_count,
+                "word_count": item.word_count,
+                "unique_word_count": item.unique_word_count,
+                "unique_kanji_count": item.unique_kanji_count,
+                "sentence_count": item.sentence_count,
+                "average_sentence_length": item.average_sentence_length,
+                "dialogue_percentage": item.dialogue_percentage,
+            }
+            for item in result.scalars().all()
+        ]
+
+    if not rows:
+        return 0
+
+    async with async_session() as db:
+        return await store_rows(db, rows)
+
+
+async def import_jiten_difficulty(jiten_only: bool = False) -> dict:
+    """Refresh the difficulty store in the dedicated Jiten DB and mirror into app DB."""
     logger.info("Sweeping jiten.moe for visual novel difficulty...")
     rows, total_items = await sweep_decks()
 
     stats = {
         "decks_reported": total_items,
         "decks_with_vndb_id": len(rows),
+        "jiten_stored": 0,
         "stored": 0,
         "aborted": False,
     }
@@ -229,13 +269,22 @@ async def import_jiten_difficulty() -> dict:
         )
         return stats
 
-    async with async_session() as db:
-        stats["stored"] = await store_rows(db, rows)
-        held = await db.execute(text("SELECT count(*) FROM vn_difficulty"))
-        stats["rows_held"] = held.scalar_one()
+    if jiten_session is not None:
+        async with jiten_session() as jiten_db:
+            stats["jiten_stored"] = await store_jiten_rows(jiten_db, rows)
+            jiten_held = await jiten_db.execute(text("SELECT count(*) FROM vn_difficulty"))
+            stats["jiten_rows_held"] = jiten_held.scalar_one()
+
+    if not jiten_only:
+        async with async_session() as db:
+            stats["stored"] = await store_rows(db, rows)
+            held = await db.execute(text("SELECT count(*) FROM vn_difficulty"))
+            stats["rows_held"] = held.scalar_one()
 
     logger.info(
-        f"Difficulty mirror: {stats['stored']:,} rows written, "
-        f"{stats['rows_held']:,} held, upstream reports {total_items}"
+        f"Difficulty mirror: {stats['stored']:,} app rows written "
+        f"(jiten db: {stats['jiten_stored']:,}), "
+        f"{stats.get('rows_held', stats.get('jiten_rows_held', 0)):,} held, "
+        f"upstream reports {total_items}"
     )
     return stats

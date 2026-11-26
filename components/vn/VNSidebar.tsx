@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from '@/components/Link';
 
 import { useTitlePreference } from '@/lib/title-preference';
+import type { ExternalRatingsSummary } from '@/lib/vndb-stats-api';
 import { lengthLabels, platformNames, formatReleaseDate, formatUpdatedAt } from './vn-utils';
 
 // The timestamp arrives without an offset, which Date reads as local time. Anchoring it to
@@ -20,6 +21,7 @@ interface VNSidebarProps {
   links?: Array<{ site: string; url: string; label: string }>;
   shops?: Array<{ site: string; url: string; label: string }>;
   updatedAt?: string;
+  external?: ExternalRatingsSummary | null;
 }
 
 export function VNSidebar({
@@ -31,6 +33,7 @@ export function VNSidebar({
   links,
   shops,
   updatedAt,
+  external,
 }: VNSidebarProps) {
   const { preference } = useTitlePreference();
   const [showAllPlatforms, setShowAllPlatforms] = useState(false);
@@ -89,6 +92,54 @@ export function VNSidebar({
             <div className="text-[color:var(--ink)]">
               {lengthInfo.label}
               <span className="vn-num text-[color:var(--text-faint)] ml-1">({lengthInfo.hours})</span>
+            </div>
+          </>
+        )}
+
+        {external?.egs?.playtime_median != null && (
+          <>
+            <span className="fig-label">EGS Playtime</span>
+            <div className="vn-num text-[color:var(--ink)]">
+              ~{external.egs.playtime_median}h median
+              {external.egs.fun_time_median != null && (
+                <span className="text-[color:var(--text-faint)] ml-1 text-xs">
+                  (hooks ~{external.egs.fun_time_median}h)
+                </span>
+              )}
+            </div>
+          </>
+        )}
+
+        {external?.egs?.genre && (
+          <>
+            <span className="fig-label">JP Genre</span>
+            <div className="text-[color:var(--ink)] text-xs leading-snug">
+              {external.egs.genre}
+            </div>
+          </>
+        )}
+
+        {external?.bangumi?.name_cn && (
+          <>
+            <span className="fig-label">CN Title</span>
+            <div className="text-[color:var(--ink)] text-xs leading-snug">
+              {external.bangumi.name_cn}
+            </div>
+          </>
+        )}
+
+        {external?.egs?.trial_url && (
+          <>
+            <span className="fig-label">Trial</span>
+            <div>
+              <a
+                href={external.egs.trial_url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-xs text-[color:var(--ai)] hover:underline"
+              >
+                Official demo / trial <span aria-hidden>↗</span>
+              </a>
             </div>
           </>
         )}
@@ -247,6 +298,79 @@ export function RatingArc({ rating, votecount }: { rating: number; votecount: nu
           style={{ width: `${progress}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+export function ExternalRatingsBar({ external }: { external?: ExternalRatingsSummary | null }) {
+  const egs = external?.egs;
+  const bgm = external?.bangumi;
+  const hasEgs = egs && egs.median != null;
+  const hasBgm = bgm && bgm.score != null;
+
+  if (!hasEgs && !hasBgm) return null;
+
+  return (
+    <div className="mt-2.5 pt-2 border-t border-[color:var(--rule)] space-y-1.5 text-xs">
+      {hasEgs && (
+        <div className="flex items-baseline gap-2">
+          <a
+            href={egs.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fig-label hover:text-[color:var(--ai)] hover:underline"
+            title="ErogameScape median score (0–100)"
+          >
+            ErogameScape
+          </a>
+          <span className="vn-num font-medium text-[color:var(--ink)] ml-auto">
+            {egs.median}
+            <span className="text-[color:var(--text-faint)] font-normal"> / 100</span>
+          </span>
+          {egs.count != null && (
+            <span className="vn-num text-[11px] text-[color:var(--nezu)]">
+              ({egs.count.toLocaleString()})
+            </span>
+          )}
+        </div>
+      )}
+
+      {hasBgm && (
+        <div className="flex items-baseline gap-2">
+          <a
+            href={bgm.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fig-label hover:text-[color:var(--ai)] hover:underline"
+            title="Bangumi community score (1–10)"
+          >
+            Bangumi
+          </a>
+          <span className="vn-num font-medium text-[color:var(--ink)] ml-auto">
+            {bgm.score!.toFixed(1)}
+            <span className="text-[color:var(--text-faint)] font-normal"> / 10</span>
+          </span>
+          {bgm.rank != null ? (
+            <span className="vn-num text-[11px] text-[color:var(--nezu)]">
+              (#{bgm.rank.toLocaleString()})
+            </span>
+          ) : bgm.votes != null ? (
+            <span className="vn-num text-[11px] text-[color:var(--nezu)]">
+              ({bgm.votes.toLocaleString()})
+            </span>
+          ) : null}
+        </div>
+      )}
+
+      {external?.consensus_score != null && (
+        <div className="flex items-baseline gap-2 pt-1 border-t border-dashed border-[color:var(--rule)]">
+          <span className="fig-label">Consensus</span>
+          <span className="vn-num font-medium text-[color:var(--ink)] ml-auto">
+            {external.consensus_score.toFixed(2)}
+            <span className="text-[color:var(--text-faint)] font-normal"> / 10</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

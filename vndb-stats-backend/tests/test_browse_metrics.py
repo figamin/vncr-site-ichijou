@@ -80,7 +80,9 @@ def test_each_metric_mirrors_an_unfiltered_board(metric):
 def test_most_metrics_mirror_a_board():
     # Guards the loop above from silently covering nothing if board_slug were ever defaulted
     # to None, which would turn every assertion here into a no-op.
-    assert len(MIRRORING) >= len(METRIC_SORTS) - 1
+    # External-source metrics (join_model is not None) intentionally have no VNDB board.
+    native_metrics = [m for m in METRIC_SORTS.values() if m.join_model is None]
+    assert len(MIRRORING) == len(native_metrics)
 
 
 @pytest.mark.parametrize("metric", METRIC_SORTS.values(), ids=lambda m: m.key)

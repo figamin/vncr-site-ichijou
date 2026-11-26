@@ -162,7 +162,9 @@ function findUnconvertedImages(): string[] {
         scanDir(fullPath);
       } else if (entry.name.endsWith('.jpg')) {
         const webpPath = fullPath.replace('.jpg', '.webp');
-        if (!fs.existsSync(webpPath)) {
+        // A zero-byte file is a conversion that died mid-write; treat it as
+        // missing so a later run retries instead of silently skipping it.
+        if (!fs.existsSync(webpPath) || fs.statSync(webpPath).size === 0) {
           unconverted.push(fullPath);
         }
       }
@@ -189,12 +191,36 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 // Per-image ceiling. Generous on purpose: a large cover on a busy host can take
 // a while once libvips is limited to a couple of threads.
 const SHARP_TIMEOUT_MS = Number(process.env.SHARP_TIMEOUT_MS ?? 120_000);
+// Some covers in the mirror are far larger than anything the site displays.
+// Above these, a conversion is not slow so much as unbounded, so skip it and
+// say so instead of holding a worker for the whole timeout (and retrying).
+const MAX_INPUT_PIXELS = Number(process.env.MAX_INPUT_PIXELS ?? 80_000_000);
+const MAX_INPUT_DIMENSION = Number(process.env.MAX_INPUT_DIMENSION ?? 12_000);
 
 /**
  * Convert a single image to WebP with retry
  */
 async function convertToWebP(jpgPath: string, retries = 2): Promise<boolean> {
   const webpPath = jpgPath.replace('.jpg', '.webp');
+
+  // Metadata is cheap and catches the pathological files before any pixels are
+  // decoded: oversized scans, and anything libvips cannot identify at all.
+  try {
+    const meta = await sharp(jpgPath).metadata();
+    const width = meta.width ?? 0;
+    const height = meta.height ?? 0;
+    if (
+      width > MAX_INPUT_DIMENSION ||
+      height > MAX_INPUT_DIMENSION ||
+      width * height > MAX_INPUT_PIXELS
+    ) {
+      console.warn(`\nSkipping oversized image: ${path.basename(jpgPath)} (${width}x${height})`);
+      return false;
+    }
+  } catch (error) {
+    console.warn(`\nSkipping unreadable image: ${path.basename(jpgPath)} (${error instanceof Error ? error.message : error})`);
+    return false;
+  }
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -205,11 +231,17 @@ async function convertToWebP(jpgPath: string, retries = 2): Promise<boolean> {
       );
       return true;
     } catch (error) {
-      if (attempt < retries) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Retrying a timeout just queues another doomed job behind the first one,
+      // which is still running because withTimeout cannot cancel libvips.
+      const timedOut = message.startsWith('Timeout after');
+      if (attempt < retries && !timedOut) {
         await new Promise(resolve => setTimeout(resolve, 100));
         continue;
       }
-      console.warn(`\nFailed to convert: ${path.basename(jpgPath)} (${error instanceof Error ? error.message : error})`);
+      // Never leave a partial file where the next scan reads it as complete.
+      try { fs.rmSync(webpPath, { force: true }); } catch { /* nothing to clean */ }
+      console.warn(`\nFailed to convert: ${path.basename(jpgPath)} (${message})`);
       return false;
     }
   }
@@ -282,8 +314,9 @@ function findMissingVariants(): VariantTask[] {
           let needsGeneration = true;
 
           if (fs.existsSync(variantPath)) {
-            const variantMtime = fs.statSync(variantPath).mtimeMs;
-            if (variantMtime >= jpgMtime) {
+            const stats = fs.statSync(variantPath);
+            // An empty variant is a failed write, not a finished one.
+            if (stats.size > 0 && stats.mtimeMs >= jpgMtime) {
               needsGeneration = false;
             }
           }

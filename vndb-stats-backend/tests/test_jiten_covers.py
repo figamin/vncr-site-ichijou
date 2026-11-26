@@ -31,6 +31,7 @@ def isolated(monkeypatch):
     """Fresh cache + locks per test; jiten_covers memoizes at module scope."""
     cache = _StubCache()
     monkeypatch.setattr(jc, "get_cache", lambda: cache)
+    monkeypatch.setattr(jc, "jiten_session", None)
     monkeypatch.setattr(jc, "_deck_locks", {})
     monkeypatch.setattr(jc, "_cover_locks", {})
     monkeypatch.setattr(jc, "_RETRY_DELAYS", ())  # no backoff sleeps in tests

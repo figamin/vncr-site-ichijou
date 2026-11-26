@@ -195,6 +195,46 @@ class VNDifficulty(Base):
     )
 
 
+class VNExternalRating(Base):
+    """Mirrored ErogameScape & Bangumi metrics for single-DB browse/sort/search.
+
+    Populated from 11.11.11.4 (`vndb.xref.vn_overview`, `egs.gamelist`, `bangumi.subject`)
+    via upsert so browse sorts and filters stay fast without cross-database joins.
+    """
+
+    __tablename__ = "vn_external_ratings"
+
+    vn_id = Column(String(10), ForeignKey("visual_novels.id", ondelete="CASCADE"), primary_key=True)
+    primary_egs_id = Column(Integer)
+    egs_median = Column(Integer)
+    egs_average = Column(Integer)
+    egs_stdev = Column(Integer)
+    egs_count = Column(Integer)
+    egs_playtime_median = Column(Integer)
+    egs_fun_time_median = Column(Integer)
+    egs_genre = Column(String(200))
+    egs_has_trial = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+
+    primary_bangumi_id = Column(Integer)
+    bangumi_score = Column(Float)
+    bangumi_rank = Column(Integer)
+    bangumi_votes = Column(Integer)
+    bangumi_name_cn = Column(String(500))
+
+    consensus_score = Column(Float)
+    updated_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vn_ext_egs_id", "primary_egs_id"),
+        Index("idx_vn_ext_egs_median", "egs_median"),
+        Index("idx_vn_ext_egs_count", "egs_count"),
+        Index("idx_vn_ext_bgm_id", "primary_bangumi_id"),
+        Index("idx_vn_ext_bgm_score", "bangumi_score"),
+        Index("idx_vn_ext_bgm_rank", "bangumi_rank"),
+        Index("idx_vn_ext_consensus", "consensus_score"),
+    )
+
+
 class VNTag(Base):
     """Many-to-many relationship between VNs and tags with score."""
 
